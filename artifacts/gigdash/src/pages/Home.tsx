@@ -87,7 +87,7 @@ export default function Home() {
 
           <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
             The local gig<br />
-            <span className="text-amber-400">cool stuff</span>, unified.
+            <span className="text-amber-400">ecosystem</span>, unified.
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
