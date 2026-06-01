@@ -73,7 +73,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar onLogin={() => openAuth("login")} onSignup={() => openAuth("signup")} />
-
       {/* Hero */}
       <section className="relative pt-28 pb-20 px-4 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -88,7 +87,7 @@ export default function Home() {
 
           <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6">
             The local gig<br />
-            <span className="text-amber-400">ecosystem</span>, unified.
+            <span className="text-amber-400">cool stuff</span>, unified.
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
@@ -112,7 +111,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* Role cards */}
       <section className="px-4 pb-24 max-w-6xl mx-auto">
         <div className="text-center mb-12">
@@ -159,7 +157,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
       {/* How it works strip */}
       <section className="border-t border-border px-4 py-20">
         <div className="max-w-5xl mx-auto">
@@ -181,7 +178,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* CTA */}
       <section className="px-4 py-20 border-t border-border">
         <div className="max-w-xl mx-auto text-center">
@@ -195,7 +191,6 @@ export default function Home() {
           </button>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="border-t border-border px-4 py-8">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -203,7 +198,6 @@ export default function Home() {
           <p className="text-muted-foreground text-sm">© 2026 GigDash. All rights reserved.</p>
         </div>
       </footer>
-
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
