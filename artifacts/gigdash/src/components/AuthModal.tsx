@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 const ROLES = [
   { id: "artist", label: "Artist", description: "I perform music and want to find gigs" },
@@ -13,18 +14,52 @@ interface AuthModalProps {
   defaultRole?: string;
 }
 
+function validatePassword(pw: string): string | null {
+  if (pw.length < 8) return "Password must be at least 8 characters.";
+  if (!/[a-zA-Z]/.test(pw)) return "Password must include a letter.";
+  if (!/[0-9]/.test(pw)) return "Password must include a number.";
+  return null;
+}
+
 export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "artist" }: AuthModalProps) {
+  const [, navigate] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [unError, setUnError] = useState<string | null>(null);
 
   if (!open) return null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    alert(`${mode === "signup" ? "Sign up" : "Login"} as ${role} — coming soon!`);
+    let valid = true;
+
+    if (mode === "signup") {
+      if (username.length < 2 || username.length > 20) {
+        setUnError("Username must be 2–20 characters.");
+        valid = false;
+      } else {
+        setUnError(null);
+      }
+
+      const pwErr = validatePassword(password);
+      if (pwErr) {
+        setPwError(pwErr);
+        valid = false;
+      } else {
+        setPwError(null);
+      }
+    }
+
+    if (!valid) return;
+
+    onClose();
+    if (mode === "signup") {
+      navigate(`/onboarding?role=${role}`);
+    }
   }
 
   return (
@@ -87,17 +122,22 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === "signup" && (
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">Username</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                Username <span className="opacity-60">(2–20 characters)</span>
+              </label>
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="2–20 characters"
+                onChange={(e) => { setUsername(e.target.value); setUnError(null); }}
+                placeholder="e.g. jamsession99"
                 minLength={2}
                 maxLength={20}
                 required
-                className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+                className={`w-full px-3.5 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow ${
+                  unError ? "border-destructive" : "border-input"
+                }`}
               />
+              {unError && <p className="text-xs text-destructive mt-1">{unError}</p>}
             </div>
           )}
 
@@ -114,23 +154,27 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1.5">Password</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+              Password{mode === "signup" && <span className="opacity-60"> (8+ chars, letter &amp; number)</span>}
+            </label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "signup" ? "8+ chars, include a number" : "Your password"}
-              minLength={8}
+              onChange={(e) => { setPassword(e.target.value); setPwError(null); }}
+              placeholder={mode === "signup" ? "Must include a letter and number" : "Your password"}
               required
-              className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
+              className={`w-full px-3.5 py-2.5 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-shadow ${
+                pwError ? "border-destructive" : "border-input"
+              }`}
             />
+            {pwError && <p className="text-xs text-destructive mt-1">{pwError}</p>}
           </div>
 
           <button
             type="submit"
             className="mt-1 w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-background font-semibold rounded-lg transition-colors text-sm"
           >
-            {mode === "signup" ? "Create account" : "Sign in"}
+            {mode === "signup" ? "Create account →" : "Sign in"}
           </button>
         </form>
 
@@ -138,7 +182,7 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
           {mode === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
           <button
             type="button"
-            onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+            onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setPwError(null); setUnError(null); }}
             className="text-amber-400 hover:text-amber-300 font-medium transition-colors"
           >
             {mode === "signup" ? "Sign in" : "Sign up"}
