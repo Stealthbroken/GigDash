@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: events
+    description: Events
+  - name: fans
+    description: Fan profiles
 paths:
   /healthz:
     get:
@@ -24,13 +30,354 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Create a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSession"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Username or email already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out
+      responses:
+        "204":
+          description: Signed out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSession"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List upcoming events
+      parameters:
+        - in: query
+          name: genre
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: artistName
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventList"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get event by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /fans/{id}:
+    get:
+      operationId: getFan
+      tags: [fans]
+      summary: Get fan profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Fan profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FanProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
+
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    UserSession:
+      type: object
+      required: [id, username, email, role]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    SignupInput:
+      type: object
+      required: [username, email, password, role]
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 20
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+        displayName:
+          type: string
+        location:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    Venue:
+      type: object
+      required: [id, name, address]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        moods:
+          type: array
+          items:
+            type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+
+    ArtistSummary:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        bio:
+          type: ["string", "null"]
+
+    EventSummary:
+      type: object
+      required: [id, title, eventDate, venue]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        isPaid:
+          type: boolean
+        eventDate:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: ["integer", "null"]
+        status:
+          type: string
+        venue:
+          $ref: "#/components/schemas/Venue"
+
+    EventDetail:
+      type: object
+      required: [id, title, eventDate, venue]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        isPaid:
+          type: boolean
+        eventDate:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: ["integer", "null"]
+        status:
+          type: string
+        venue:
+          $ref: "#/components/schemas/Venue"
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSummary"
+
+    EventList:
+      type: object
+      required: [events, total]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventSummary"
+        total:
+          type: integer
+
+    FanProfile:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        location:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
 

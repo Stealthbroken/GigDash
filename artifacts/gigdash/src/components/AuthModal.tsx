@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ROLES = [
   { id: "artist", label: "Artist", description: "I perform music and want to find gigs" },
@@ -21,8 +22,9 @@ function validatePassword(pw: string): string | null {
   return null;
 }
 
-export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "artist" }: AuthModalProps) {
+export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "fan" }: AuthModalProps) {
   const [, navigate] = useLocation();
+  const { setUser } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState("");
@@ -30,11 +32,14 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
   const [username, setUsername] = useState("");
   const [pwError, setPwError] = useState<string | null>(null);
   const [unError, setUnError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   if (!open) return null;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setServerError(null);
     let valid = true;
 
     if (mode === "signup") {
@@ -44,7 +49,6 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
       } else {
         setUnError(null);
       }
-
       const pwErr = validatePassword(password);
       if (pwErr) {
         setPwError(pwErr);
@@ -53,12 +57,43 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
         setPwError(null);
       }
     }
-
     if (!valid) return;
 
-    onClose();
-    if (mode === "signup") {
-      navigate(`/onboarding?role=${role}`);
+    setLoading(true);
+    try {
+      const url = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body =
+        mode === "signup"
+          ? { username, email, password, role }
+          : { email, password };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setServerError(data.error ?? "Something went wrong.");
+        return;
+      }
+
+      setUser(data);
+      onClose();
+
+      if (mode === "signup") {
+        navigate(`/onboarding?role=${role}`);
+      } else {
+        const dest = data.role === "fan" ? "/fan" : "/";
+        navigate(dest);
+      }
+    } catch {
+      setServerError("Could not connect to server. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -119,6 +154,12 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
           </div>
         )}
 
+        {serverError && (
+          <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+            {serverError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === "signup" && (
             <div>
@@ -172,8 +213,15 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
 
           <button
             type="submit"
-            className="mt-1 w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-background font-semibold rounded-lg transition-colors text-sm"
+            disabled={loading}
+            className="mt-1 w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-background font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
           >
+            {loading && (
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
             {mode === "signup" ? "Create account →" : "Sign in"}
           </button>
         </form>
@@ -182,7 +230,7 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
           {mode === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
           <button
             type="button"
-            onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setPwError(null); setUnError(null); }}
+            onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setPwError(null); setUnError(null); setServerError(null); }}
             className="text-amber-400 hover:text-amber-300 font-medium transition-colors"
           >
             {mode === "signup" ? "Sign in" : "Sign up"}
