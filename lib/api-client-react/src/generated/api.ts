@@ -28,7 +28,8 @@ import type {
   ListEventsParams,
   LoginInput,
   SignupInput,
-  UserSession
+  UserSession,
+  Venue
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -636,6 +637,83 @@ export function useGetFan<TData = Awaited<ReturnType<typeof getFan>>, TError = E
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetFanQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetVenueUrl = (id: number,) => {
+
+
+
+
+  return `/api/venues/${id}`
+}
+
+/**
+ * @summary Get venue by ID
+ */
+export const getVenue = async (id: number, options?: RequestInit): Promise<Venue> => {
+
+  return customFetch<Venue>(getGetVenueUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVenueQueryKey = (id: number,) => {
+    return [
+    `/api/venues/${id}`
+    ] as const;
+    }
+
+
+export const getGetVenueQueryOptions = <TData = Awaited<ReturnType<typeof getVenue>>, TError = ErrorType<ApiError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVenueQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVenue>>> = ({ signal }) => getVenue(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVenue>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVenueQueryResult = NonNullable<Awaited<ReturnType<typeof getVenue>>>
+export type GetVenueQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get venue by ID
+ */
+
+export function useGetVenue<TData = Awaited<ReturnType<typeof getVenue>>, TError = ErrorType<ApiError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVenueQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

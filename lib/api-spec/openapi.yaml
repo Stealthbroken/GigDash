@@ -16,6 +16,8 @@ tags:
     description: Events
   - name: fans
     description: Fan profiles
+  - name: venues
+    description: Venue profiles
 paths:
   /healthz:
     get:
@@ -192,6 +194,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FanProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /venues/{id}:
+    get:
+      operationId: getVenue
+      tags: [venues]
+      summary: Get venue by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Venue details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
         "404":
           description: Not found
           content:

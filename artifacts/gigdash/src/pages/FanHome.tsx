@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useListEvents } from "@workspace/api-client-react";
 import type { EventSummary } from "@workspace/api-client-react";
 import FanNav from "@/components/fan/FanNav";
@@ -32,13 +33,14 @@ function formatDate(dateStr: string): { day: string; month: string; time: string
   };
 }
 
-function EventCard({ event, isSelected }: { event: EventSummary; isSelected?: boolean }) {
+function EventCard({ event, isSelected, onClick }: { event: EventSummary; isSelected?: boolean; onClick?: () => void }) {
   const date = formatDate(event.eventDate);
   const isFinalized = (event.artistCount ?? 0) > 0;
+  const [, navigate] = useLocation();
   return (
     <div className={`group flex gap-4 bg-card border rounded-2xl p-4 transition-all cursor-pointer ${
       isSelected ? "border-amber-500/50 bg-amber-500/10" : "border-card-border hover:border-amber-500/30"
-    }`}>
+    }`} onClick={onClick}>
       <div className="shrink-0 w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center justify-center">
         <span className="text-amber-400 font-bold text-lg leading-none">{date.day}</span>
         <span className="text-amber-400/70 text-[10px] font-semibold">{date.month}</span>
@@ -61,7 +63,12 @@ function EventCard({ event, isSelected }: { event: EventSummary; isSelected?: bo
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
           </svg>
-          <span className="truncate">{event.venue.name} · {event.venue.address.split(",").slice(0, 2).join(",")}</span>
+          <button
+            className="truncate hover:text-amber-400 transition-colors"
+            onClick={(e) => { e.stopPropagation(); navigate(`/venue/${event.venue.id}`); }}
+          >
+            {event.venue.name} · {event.venue.address.split(",").slice(0, 2).join(",")}
+          </button>
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -188,6 +195,7 @@ export default function FanHome() {
                     key={event.id}
                     event={event}
                     isSelected={selectedEventId === event.id}
+                    onClick={() => setSelectedEventId(event.id)}
                   />
                 ))}
                 <p className="text-center text-xs text-muted-foreground pt-2">

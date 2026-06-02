@@ -110,7 +110,12 @@ export default function ArtistOnboarding() {
               {GENRES.map((g) => (
                 <TagButton key={g} label={g} selected={genres.includes(g)} onClick={() => setGenres(toggle(genres, g))} />
               ))}
-              <CustomTagInput accent="amber" onAdd={(tag) => setGenres((prev) => [...prev, tag])} />
+              <CustomTagInput
+                accent="amber"
+                tags={genres.filter((g) => !GENRES.includes(g))}
+                onAdd={(tag) => setGenres((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
+              />
             </div>
           </div>
           <div>
@@ -119,7 +124,12 @@ export default function ArtistOnboarding() {
               {VIBES.map((v) => (
                 <TagButton key={v} label={v} selected={vibes.includes(v)} onClick={() => setVibes(toggle(vibes, v))} />
               ))}
-              <CustomTagInput accent="amber" onAdd={(tag) => setVibes((prev) => [...prev, tag])} />
+              <CustomTagInput
+                accent="amber"
+                tags={vibes.filter((v) => !VIBES.includes(v))}
+                onAdd={(tag) => setVibes((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                onRemove={(tag) => setVibes((prev) => prev.filter((v) => v !== tag))}
+              />
             </div>
           </div>
           <div className="flex gap-3 mt-2">

@@ -116,7 +116,12 @@ export default function FanOnboarding() {
               {GENRES.map((g) => (
                 <TagButton key={g} label={g} selected={genres.includes(g)} onClick={() => setGenres(toggle(genres, g))} />
               ))}
-              <CustomTagInput accent="emerald" onAdd={(tag) => setGenres((prev) => [...prev, tag])} />
+              <CustomTagInput
+                accent="emerald"
+                tags={genres.filter((g) => !GENRES.includes(g))}
+                onAdd={(tag) => setGenres((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
+              />
             </div>
           </div>
 

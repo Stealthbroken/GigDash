@@ -155,3 +155,23 @@ export const GetFanResponse = zod.object({
 })
 
 
+/**
+ * @summary Get venue by ID
+ */
+export const GetVenueParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetVenueResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "moods": zod.array(zod.string()).optional(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+})
+
+

@@ -171,7 +171,12 @@ export default function VenueOnboarding() {
               {MOODS.map((m) => (
                 <TagButton key={m} label={m} selected={moods.includes(m)} onClick={() => setMoods(toggle(moods, m))} />
               ))}
-              <CustomTagInput accent="violet" onAdd={(tag) => setMoods((prev) => [...prev, tag])} />
+              <CustomTagInput
+                accent="violet"
+                tags={moods.filter((m) => !MOODS.includes(m))}
+                onAdd={(tag) => setMoods((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                onRemove={(tag) => setMoods((prev) => prev.filter((m) => m !== tag))}
+              />
             </div>
           </div>
 
