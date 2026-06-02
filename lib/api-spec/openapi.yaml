@@ -283,6 +283,10 @@ components:
           type: array
           items:
             type: string
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
 
     ArtistSummary:
       type: object
@@ -322,6 +326,8 @@ components:
           type: ["integer", "null"]
         status:
           type: string
+        artistCount:
+          type: integer
         venue:
           $ref: "#/components/schemas/Venue"
 
@@ -348,6 +354,8 @@ components:
           type: ["integer", "null"]
         status:
           type: string
+        artistCount:
+          type: integer
         venue:
           $ref: "#/components/schemas/Venue"
         artists:

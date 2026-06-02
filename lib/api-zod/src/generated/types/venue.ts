@@ -16,4 +16,8 @@ export interface Venue {
   size?: string | null;
   moods?: string[];
   imageUrls?: string[];
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
 }

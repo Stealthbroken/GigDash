@@ -19,6 +19,7 @@ export interface EventDetail {
   /** @nullable */
   durationMinutes?: number | null;
   status?: string;
+  artistCount?: number;
   venue: Venue;
   artists?: ArtistSummary[];
 }

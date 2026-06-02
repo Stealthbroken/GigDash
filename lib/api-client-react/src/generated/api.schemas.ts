@@ -50,6 +50,10 @@ export interface Venue {
   size?: string | null;
   moods?: string[];
   imageUrls?: string[];
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
 }
 
 export interface ArtistSummary {
@@ -71,6 +75,7 @@ export interface EventSummary {
   /** @nullable */
   durationMinutes?: number | null;
   status?: string;
+  artistCount?: number;
   venue: Venue;
 }
 
@@ -85,6 +90,7 @@ export interface EventDetail {
   /** @nullable */
   durationMinutes?: number | null;
   status?: string;
+  artistCount?: number;
   venue: Venue;
   artists?: ArtistSummary[];
 }

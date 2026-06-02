@@ -86,6 +86,7 @@ export const ListEventsResponse = zod.object({
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
+  "artistCount": zod.number().optional(),
   "venue": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -93,7 +94,9 @@ export const ListEventsResponse = zod.object({
   "description": zod.string().nullish(),
   "size": zod.string().nullish(),
   "moods": zod.array(zod.string()).optional(),
-  "imageUrls": zod.array(zod.string()).optional()
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
 })
 })),
   "total": zod.number()
@@ -116,6 +119,7 @@ export const GetEventResponse = zod.object({
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
+  "artistCount": zod.number().optional(),
   "venue": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -123,7 +127,9 @@ export const GetEventResponse = zod.object({
   "description": zod.string().nullish(),
   "size": zod.string().nullish(),
   "moods": zod.array(zod.string()).optional(),
-  "imageUrls": zod.array(zod.string()).optional()
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
 }),
   "artists": zod.array(zod.object({
   "id": zod.number(),

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
 import { db, eventsTable, venuesTable, eventArtistsTable, artistsTable } from "@workspace/db";
 import { ListEventsResponse, GetEventResponse } from "@workspace/api-zod";
 
@@ -28,6 +28,9 @@ router.get("/events", async (req, res): Promise<void> => {
       venueSize: venuesTable.size,
       venueMoods: venuesTable.moods,
       venueImageUrls: venuesTable.imageUrls,
+      venueLat: venuesTable.lat,
+      venueLng: venuesTable.lng,
+      artistCount: sql<number>`(SELECT COUNT(*) FROM event_artists WHERE event_artists.event_id = ${eventsTable.id})`.as("artistCount"),
     })
     .from(eventsTable)
     .innerJoin(venuesTable, eq(eventsTable.venueId, venuesTable.id))
@@ -53,6 +56,7 @@ router.get("/events", async (req, res): Promise<void> => {
       eventDate: r.eventDate,
       durationMinutes: r.durationMinutes,
       status: r.status,
+      artistCount: Number(r.artistCount) || 0,
       venue: {
         id: r.venueId,
         name: r.venueName,
@@ -61,6 +65,8 @@ router.get("/events", async (req, res): Promise<void> => {
         size: r.venueSize,
         moods: r.venueMoods,
         imageUrls: r.venueImageUrls,
+        lat: r.venueLat,
+        lng: r.venueLng,
       },
     }));
 
@@ -92,6 +98,8 @@ router.get("/events/:id", async (req, res): Promise<void> => {
       venueSize: venuesTable.size,
       venueMoods: venuesTable.moods,
       venueImageUrls: venuesTable.imageUrls,
+      venueLat: venuesTable.lat,
+      venueLng: venuesTable.lng,
     })
     .from(eventsTable)
     .innerJoin(venuesTable, eq(eventsTable.venueId, venuesTable.id))
@@ -114,6 +122,8 @@ router.get("/events/:id", async (req, res): Promise<void> => {
     .innerJoin(artistsTable, eq(eventArtistsTable.artistId, artistsTable.id))
     .where(eq(eventArtistsTable.eventId, id));
 
+  const artistCount = artistRows.length;
+
   res.json(
     GetEventResponse.parse({
       id: row.id,
@@ -124,6 +134,7 @@ router.get("/events/:id", async (req, res): Promise<void> => {
       eventDate: row.eventDate,
       durationMinutes: row.durationMinutes,
       status: row.status,
+      artistCount,
       venue: {
         id: row.venueId,
         name: row.venueName,
@@ -132,6 +143,8 @@ router.get("/events/:id", async (req, res): Promise<void> => {
         size: row.venueSize,
         moods: row.venueMoods,
         imageUrls: row.venueImageUrls,
+        lat: row.venueLat,
+        lng: row.venueLng,
       },
       artists: artistRows,
     }),
