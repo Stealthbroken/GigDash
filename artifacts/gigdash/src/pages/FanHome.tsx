@@ -207,7 +207,7 @@ export default function FanHome() {
 
           {/* Right — interactive map */}
           <div className="lg:sticky lg:top-20">
-            <div className="rounded-2xl border border-border bg-card overflow-hidden h-[650px]">
+            <div className="rounded-2xl border border-border bg-card h-[calc(100vh-220px)] min-h-[500px]">
               <MapView
                 events={events}
                 selectedEventId={selectedEventId}

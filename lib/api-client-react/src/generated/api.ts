@@ -724,8 +724,6 @@ export function useGetFan<TData = Awaited<ReturnType<typeof getFan>>, TError = E
 
 
 
-<<<<<<< HEAD
-=======
 export const getUpdateArtistMeUrl = () => {
 
 
@@ -868,7 +866,6 @@ export const useUpdateVenueMe = <TError = ErrorType<ApiError>,
       return useMutation(getUpdateVenueMeMutationOptions(options));
     }
 
->>>>>>> 8b7d02f (feat: persist onboarding data to the database)
 export const getGetVenueUrl = (id: number,) => {
 
 

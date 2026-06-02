@@ -1,40 +1,48 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { EventSummary } from "@workspace/api-client-react";
 
 /* ───── Custom marker icons ───── */
 
-function createIcon(type: "planning" | "finalized"): L.Icon {
+function createIcon(type: "planning" | "finalized", selected = false): L.Icon {
   const color = type === "planning" ? "#ef4444" : "#10b981"; // red-500 / emerald-500
-  const symbol = type === "planning" ? "!" : "♪"; // exclamation / eighth note
+  const symbol = type === "planning" ? "!" : "♪";
+  const size = selected ? 42 : 32;
+  const height = selected ? 52 : 40;
+  const ring = selected
+    ? `<circle cx="${size / 2}" cy="${size / 2 - 2}" r="${size / 2 - 1}" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>`
+    : "";
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${height}" viewBox="0 0 ${size} ${height}">
       <defs>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.4"/>
         </filter>
       </defs>
-      <path d="M16 0C7.16 0 0 7.16 0 16c0 10.6 16 24 16 24s16-13.4 16-24C32 7.16 24.84 0 16 0z" fill="${color}" filter="url(#shadow)"/>
-      <text x="16" y="20" text-anchor="middle" dominant-baseline="central" fill="white" font-size="14" font-weight="bold" font-family="system-ui">${symbol}</text>
+      <path d="M${size / 2} 0C${size * 0.2238} 0 0 ${size * 0.2238} 0 ${size / 2}c0 ${size * 0.3313} ${size / 2} ${size * 0.75} ${size / 2} ${size * 0.75}s${size / 2}-${size * 0.4188} ${size / 2}-${size * 0.75}C${size} ${size * 0.2238} ${size * 0.7763} 0 ${size / 2} 0z" fill="${color}" filter="url(#shadow)"/>
+      ${ring}
+      <text x="${size / 2}" y="${size / 2 + 2}" text-anchor="middle" dominant-baseline="central" fill="white" font-size="${selected ? 17 : 14}" font-weight="bold" font-family="system-ui">${symbol}</text>
     </svg>
   `;
   return L.icon({
     iconUrl: "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg.trim()))),
-    iconSize: [32, 40],
-    iconAnchor: [16, 40],
-    popupAnchor: [0, -36],
+    iconSize: [size, height],
+    iconAnchor: [size / 2, height],
+    popupAnchor: [0, -(height - 4)],
     className: "",
   });
 }
 
 const planningIcon = createIcon("planning");
 const finalizedIcon = createIcon("finalized");
+const planningIconSelected = createIcon("planning", true);
+const finalizedIconSelected = createIcon("finalized", true);
 
 /* ───── Helpers ───── */
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371; // km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
@@ -55,7 +63,7 @@ function formatTime(dateStr: string): string {
   return d.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-/* ───── MapFlyTo — used to fly to an event when clicked in the list ───── */
+/* ───── MapFlyTo — flies to an event when clicked in the list ───── */
 
 function MapFlyTo({ target }: { target: [number, number] | null }) {
   const map = useMap();
@@ -77,7 +85,7 @@ function MapBounds({
   centerRef: React.MutableRefObject<L.LatLng | null>;
 }) {
   const map = useMap();
-  const mapEvents = useMapEvents({
+  useMapEvents({
     moveend() {
       const bounds = map.getBounds();
       centerRef.current = map.getCenter();
@@ -90,7 +98,6 @@ function MapBounds({
       onVisibleChange(visible);
     },
   });
-  // Initial check on mount via useEffect
   useEffect(() => {
     const check = () => {
       if (!map.getBounds().isValid()) {
@@ -125,15 +132,15 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [visibleEvents, setVisibleEvents] = useState<EventSummary[]>(events);
 
-  // When events change (e.g. after data loads), set visible to all initially
   useEffect(() => {
     setVisibleEvents(events);
   }, [events]);
+
   const centerRef = useRef<L.LatLng | null>(null);
 
   const mapCenter: [number, number] = useMemo(() => {
     const withCoords = events.filter((e) => e.venue?.lat != null && e.venue?.lng != null);
-    if (withCoords.length === 0) return [43.6532, -79.3832]; // Toronto default
+    if (withCoords.length === 0) return [43.6532, -79.3832];
     const avgLat = withCoords.reduce((s, e) => s + e.venue!.lat!, 0) / withCoords.length;
     const avgLng = withCoords.reduce((s, e) => s + e.venue!.lng!, 0) / withCoords.length;
     return [avgLat, avgLng];
@@ -164,14 +171,14 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
   );
 
   return (
-    <div className="flex h-full gap-3">
+    <div className="flex h-full min-h-0 gap-3">
       {/* Map */}
-      <div className="flex-1 relative rounded-xl overflow-hidden bg-card">
+      <div className="flex-1 relative rounded-xl bg-card">
         <MapContainer
           center={mapCenter}
           zoom={13}
           scrollWheelZoom={true}
-          style={{ height: "100%", width: "100%" }}
+          style={{ height: "100%", width: "100%", borderRadius: "0.75rem" }}
           className="z-0"
         >
           <TileLayer
@@ -184,22 +191,46 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
             centerRef={centerRef}
           />
           <MapFlyTo target={flyTarget} />
-          {eventsWithCoords.map((event) => (
-            <Marker
-              key={event.id}
-              position={[event.venue!.lat!, event.venue!.lng!]}
-              icon={event.artistCount && event.artistCount > 0 ? finalizedIcon : planningIcon}
-              eventHandlers={{
-                click: () => {
-                  onSelectEvent(event);
-                },
-              }}
-            />
-          ))}
+          {eventsWithCoords.map((event) => {
+            const isFinalized = (event.artistCount ?? 0) > 0;
+            const isSelected = selectedEventId === event.id;
+            const icon = isFinalized
+              ? isSelected ? finalizedIconSelected : finalizedIcon
+              : isSelected ? planningIconSelected : planningIcon;
+            return (
+              <Marker
+                key={event.id}
+                position={[event.venue!.lat!, event.venue!.lng!]}
+                icon={icon}
+                eventHandlers={{
+                  click: () => onSelectEvent(event),
+                }}
+              >
+                <Popup>
+                  <div className="text-sm leading-snug min-w-[160px]">
+                    <p className="font-semibold text-foreground leading-tight mb-1">
+                      {event.title}
+                    </p>
+                    <p className="text-muted-foreground text-xs">{event.venue?.name}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">
+                      {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
+                    </p>
+                    <span
+                      className={`inline-block mt-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ${
+                        isFinalized ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    >
+                      {isFinalized ? "♪ Finalized" : "! Planning"}
+                    </span>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
 
-        {/* Legend overlay */}
-        <div className="absolute bottom-4 left-4 z-[400] bg-card/90 backdrop-blur-md border border-border rounded-xl px-3 py-2 shadow-lg flex items-center gap-3 text-xs">
+        {/* Legend overlay — z-[1000] sits above Leaflet tiles (~400) but below popups */}
+        <div className="absolute bottom-8 left-14 z-[1000] bg-card/90 backdrop-blur-md border border-border rounded-xl px-3 py-2 shadow-lg flex items-center gap-3 text-xs pointer-events-none">
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-red-500 shadow-sm" />
             <span className="text-muted-foreground">Planning (!)</span>
@@ -211,15 +242,15 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
         </div>
       </div>
 
-      {/* Side list */}
-      <div className="flex flex-col h-full overflow-hidden rounded-2xl border border-border bg-card">
+      {/* Side list — fixed width so it never collapses */}
+      <div className="w-72 shrink-0 flex flex-col min-h-0 rounded-2xl border border-border bg-card">
         <div className="px-4 py-3 border-b border-border shrink-0">
           <h2 className="font-semibold text-sm">Events nearby</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {sortedVisible.length} visible on screen
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
           {sortedVisible.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <span className="text-3xl mb-2 block">🎯</span>
@@ -251,7 +282,7 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
                       <p className="font-medium text-sm leading-tight truncate">
                         {event.title}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {event.venue?.name}
                       </p>
                       <p className="text-[10px] text-muted-foreground/70 mt-0.5">
