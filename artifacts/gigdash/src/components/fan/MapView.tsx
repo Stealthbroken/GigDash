@@ -67,9 +67,16 @@ function formatTime(dateStr: string): string {
 
 function MapFlyTo({ target }: { target: [number, number] | null }) {
   const map = useMap();
-  if (target) {
+  const lastTargetRef = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    const last = lastTargetRef.current;
+    if (last && last[0] === target[0] && last[1] === target[1]) return;
+    lastTargetRef.current = target;
     map.flyTo(target, 15, { duration: 1.5 });
-  }
+  }, [target, map]);
+
   return null;
 }
 
