@@ -21,15 +21,19 @@ import type {
 
 import type {
   ApiError,
+  ArtistOnboardingInput,
+  ArtistProfile,
   EventDetail,
   EventList,
+  FanOnboardingInput,
   FanProfile,
   HealthStatus,
   ListEventsParams,
   LoginInput,
   SignupInput,
   UserSession,
-  Venue
+  Venue,
+  VenueOnboardingInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -572,6 +576,77 @@ export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError
 
 
 
+export const getUpdateFanMeUrl = () => {
+
+
+
+
+  return `/api/fans/me`
+}
+
+/**
+ * @summary Update current fan profile
+ */
+export const updateFanMe = async (fanOnboardingInput: FanOnboardingInput, options?: RequestInit): Promise<FanProfile> => {
+
+  return customFetch<FanProfile>(getUpdateFanMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      fanOnboardingInput,)
+  }
+);}
+
+
+
+
+export const getUpdateFanMeMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFanMe>>, TError,{data: BodyType<FanOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFanMe>>, TError,{data: BodyType<FanOnboardingInput>}, TContext> => {
+
+const mutationKey = ['updateFanMe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFanMe>>, {data: BodyType<FanOnboardingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateFanMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFanMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateFanMe>>>
+    export type UpdateFanMeMutationBody = BodyType<FanOnboardingInput>
+    export type UpdateFanMeMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update current fan profile
+ */
+export const useUpdateFanMe = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFanMe>>, TError,{data: BodyType<FanOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFanMe>>,
+        TError,
+        {data: BodyType<FanOnboardingInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateFanMeMutationOptions(options));
+    }
+
 export const getGetFanUrl = (id: number,) => {
 
 
@@ -649,6 +724,151 @@ export function useGetFan<TData = Awaited<ReturnType<typeof getFan>>, TError = E
 
 
 
+<<<<<<< HEAD
+=======
+export const getUpdateArtistMeUrl = () => {
+
+
+
+
+  return `/api/artists/me`
+}
+
+/**
+ * @summary Update current artist profile
+ */
+export const updateArtistMe = async (artistOnboardingInput: ArtistOnboardingInput, options?: RequestInit): Promise<ArtistProfile> => {
+
+  return customFetch<ArtistProfile>(getUpdateArtistMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      artistOnboardingInput,)
+  }
+);}
+
+
+
+
+export const getUpdateArtistMeMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArtistMe>>, TError,{data: BodyType<ArtistOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateArtistMe>>, TError,{data: BodyType<ArtistOnboardingInput>}, TContext> => {
+
+const mutationKey = ['updateArtistMe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateArtistMe>>, {data: BodyType<ArtistOnboardingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateArtistMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateArtistMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateArtistMe>>>
+    export type UpdateArtistMeMutationBody = BodyType<ArtistOnboardingInput>
+    export type UpdateArtistMeMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update current artist profile
+ */
+export const useUpdateArtistMe = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArtistMe>>, TError,{data: BodyType<ArtistOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateArtistMe>>,
+        TError,
+        {data: BodyType<ArtistOnboardingInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateArtistMeMutationOptions(options));
+    }
+
+export const getUpdateVenueMeUrl = () => {
+
+
+
+
+  return `/api/venues/me`
+}
+
+/**
+ * @summary Update current venue profile
+ */
+export const updateVenueMe = async (venueOnboardingInput: VenueOnboardingInput, options?: RequestInit): Promise<Venue> => {
+
+  return customFetch<Venue>(getUpdateVenueMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      venueOnboardingInput,)
+  }
+);}
+
+
+
+
+export const getUpdateVenueMeMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVenueMe>>, TError,{data: BodyType<VenueOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVenueMe>>, TError,{data: BodyType<VenueOnboardingInput>}, TContext> => {
+
+const mutationKey = ['updateVenueMe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVenueMe>>, {data: BodyType<VenueOnboardingInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateVenueMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVenueMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateVenueMe>>>
+    export type UpdateVenueMeMutationBody = BodyType<VenueOnboardingInput>
+    export type UpdateVenueMeMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update current venue profile
+ */
+export const useUpdateVenueMe = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVenueMe>>, TError,{data: BodyType<VenueOnboardingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateVenueMe>>,
+        TError,
+        {data: BodyType<VenueOnboardingInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateVenueMeMutationOptions(options));
+    }
+
+>>>>>>> 8b7d02f (feat: persist onboarding data to the database)
 export const getGetVenueUrl = (id: number,) => {
 
 

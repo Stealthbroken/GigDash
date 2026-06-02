@@ -141,6 +141,28 @@ export const GetEventResponse = zod.object({
 
 
 /**
+ * @summary Update current fan profile
+ */
+export const updateFanMeBodyDisplayNameMax = 40;
+
+
+
+export const UpdateFanMeBody = zod.object({
+  "displayName": zod.string().min(1).max(updateFanMeBodyDisplayNameMax),
+  "avatarUrl": zod.string().optional(),
+  "location": zod.string().optional(),
+  "genres": zod.array(zod.string())
+})
+
+export const UpdateFanMeResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "location": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
  * @summary Get fan profile
  */
 export const GetFanParams = zod.object({
@@ -152,6 +174,63 @@ export const GetFanResponse = zod.object({
   "displayName": zod.string(),
   "location": zod.string().nullish(),
   "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Update current artist profile
+ */
+export const updateArtistMeBodyDisplayNameMax = 40;
+
+
+
+export const UpdateArtistMeBody = zod.object({
+  "displayName": zod.string().min(1).max(updateArtistMeBodyDisplayNameMax),
+  "avatarUrl": zod.string().optional(),
+  "bio": zod.string().optional(),
+  "genres": zod.array(zod.string()),
+  "vibes": zod.array(zod.string()),
+  "spotifyUrl": zod.string().optional(),
+  "youtubeUrl": zod.string().optional()
+})
+
+export const UpdateArtistMeResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "bio": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "vibes": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update current venue profile
+ */
+export const updateVenueMeBodyNameMax = 60;
+
+
+
+
+export const UpdateVenueMeBody = zod.object({
+  "name": zod.string().min(1).max(updateVenueMeBodyNameMax),
+  "address": zod.string().min(1),
+  "description": zod.string().optional(),
+  "size": zod.string().optional(),
+  "moods": zod.array(zod.string())
+})
+
+export const UpdateVenueMeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "moods": zod.array(zod.string()).optional(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
 })
 
 

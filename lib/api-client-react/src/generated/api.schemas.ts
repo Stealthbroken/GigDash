@@ -100,6 +100,57 @@ export interface EventList {
   total: number;
 }
 
+export interface FanOnboardingInput {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  displayName: string;
+  avatarUrl?: string;
+  location?: string;
+  genres: string[];
+}
+
+export interface ArtistOnboardingInput {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  displayName: string;
+  avatarUrl?: string;
+  bio?: string;
+  genres: string[];
+  vibes: string[];
+  spotifyUrl?: string;
+  youtubeUrl?: string;
+}
+
+export interface VenueOnboardingInput {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  name: string;
+  /** @minLength 1 */
+  address: string;
+  description?: string;
+  size?: string;
+  moods: string[];
+}
+
+export interface ArtistProfile {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  bio?: string | null;
+  genres?: string[];
+  vibes?: string[];
+  /** @nullable */
+  spotifyUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+}
+
 export interface FanProfile {
   id: number;
   displayName: string;

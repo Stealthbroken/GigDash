@@ -176,6 +176,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /fans/me:
+    patch:
+      operationId: updateFanMe
+      tags: [fans]
+      summary: Update current fan profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FanOnboardingInput"
+      responses:
+        "200":
+          description: Updated fan profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FanProfile"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /fans/{id}:
     get:
       operationId: getFan
@@ -196,6 +233,80 @@ paths:
                 $ref: "#/components/schemas/FanProfile"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /artists/me:
+    patch:
+      operationId: updateArtistMe
+      tags: [artists]
+      summary: Update current artist profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtistOnboardingInput"
+      responses:
+        "200":
+          description: Updated artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistProfile"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /venues/me:
+    patch:
+      operationId: updateVenueMe
+      tags: [venues]
+      summary: Update current venue profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueOnboardingInput"
+      responses:
+        "200":
+          description: Updated venue profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
           content:
             application/json:
               schema:
@@ -400,6 +511,91 @@ components:
             $ref: "#/components/schemas/EventSummary"
         total:
           type: integer
+
+    FanOnboardingInput:
+      type: object
+      required: [displayName, genres]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 40
+        avatarUrl:
+          type: string
+        location:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+
+    ArtistOnboardingInput:
+      type: object
+      required: [displayName, genres, vibes]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 40
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        vibes:
+          type: array
+          items:
+            type: string
+        spotifyUrl:
+          type: string
+        youtubeUrl:
+          type: string
+
+    VenueOnboardingInput:
+      type: object
+      required: [name, address, moods]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        address:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        size:
+          type: string
+        moods:
+          type: array
+          items:
+            type: string
+
+    ArtistProfile:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        vibes:
+          type: array
+          items:
+            type: string
+        spotifyUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
 
     FanProfile:
       type: object

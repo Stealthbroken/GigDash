@@ -7,10 +7,13 @@
  */
 
 export * from './apiError';
+export * from './artistOnboardingInput';
+export * from './artistProfile';
 export * from './artistSummary';
 export * from './eventDetail';
 export * from './eventList';
 export * from './eventSummary';
+export * from './fanOnboardingInput';
 export * from './fanProfile';
 export * from './healthStatus';
 export * from './listEventsParams';
@@ -18,3 +21,4 @@ export * from './loginInput';
 export * from './signupInput';
 export * from './userSession';
 export * from './venue';
+export * from './venueOnboardingInput';

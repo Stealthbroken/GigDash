@@ -41,11 +41,40 @@ export default function ArtistOnboarding() {
   const [spotify, setSpotify] = useState("");
   const [youtube, setYoutube] = useState("");
 
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   function next() { setStep((s) => s + 1); }
   function back() { setStep((s) => s - 1); }
 
-  function finish() {
-    navigate("/");
+  async function finish() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/artists/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName,
+          avatarUrl: avatarUrl || undefined,
+          bio: bio || undefined,
+          genres,
+          vibes,
+          spotifyUrl: spotify || undefined,
+          youtubeUrl: youtube || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError((data as { error?: string }).error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      navigate("/");
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -197,15 +226,28 @@ export default function ArtistOnboarding() {
             </p>
           </div>
 
+          {error && (
+            <p className="text-sm text-red-400 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5">
+              {error}
+            </p>
+          )}
+
           <div className="flex gap-3 mt-2">
-            <button onClick={back} className="flex-1 py-2.5 border border-border text-foreground font-medium rounded-lg text-sm hover:bg-secondary transition-colors">
+            <button onClick={back} disabled={saving} className="flex-1 py-2.5 border border-border text-foreground font-medium rounded-lg text-sm hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               Back
             </button>
             <button
               onClick={finish}
-              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-background font-semibold rounded-lg text-sm transition-colors"
+              disabled={saving}
+              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-background font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
             >
-              Finish setup
+              {saving && (
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
+              {saving ? "Saving…" : "Finish setup"}
             </button>
           </div>
         </div>
