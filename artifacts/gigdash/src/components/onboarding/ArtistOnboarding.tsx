@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import StepIndicator from "./StepIndicator";
+import CustomTagInput from "./CustomTagInput";
+import AvatarUpload from "./AvatarUpload";
 
 const GENRES = ["Rock", "Pop", "Jazz", "Hip-Hop", "Electronic", "Folk", "Classical", "R&B", "Country", "Metal"];
 const VIBES = ["Energetic", "Chill", "Acoustic", "Experimental", "Traditional", "Interactive", "Background", "Headliner-ready"];
@@ -32,6 +34,7 @@ export default function ArtistOnboarding() {
   const [step, setStep] = useState(0);
 
   const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [vibes, setVibes] = useState<string[]>([]);
@@ -57,6 +60,9 @@ export default function ArtistOnboarding() {
             <h2 className="font-serif text-2xl font-bold mb-1">Set up your artist profile</h2>
             <p className="text-muted-foreground text-sm">This is what venues and fans will see.</p>
           </div>
+
+          <AvatarUpload url={avatarUrl} onChange={setAvatarUrl} color="amber" />
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">Display Name</label>
             <input
@@ -104,6 +110,7 @@ export default function ArtistOnboarding() {
               {GENRES.map((g) => (
                 <TagButton key={g} label={g} selected={genres.includes(g)} onClick={() => setGenres(toggle(genres, g))} />
               ))}
+              <CustomTagInput accent="amber" onAdd={(tag) => setGenres((prev) => [...prev, tag])} />
             </div>
           </div>
           <div>
@@ -112,6 +119,7 @@ export default function ArtistOnboarding() {
               {VIBES.map((v) => (
                 <TagButton key={v} label={v} selected={vibes.includes(v)} onClick={() => setVibes(toggle(vibes, v))} />
               ))}
+              <CustomTagInput accent="amber" onAdd={(tag) => setVibes((prev) => [...prev, tag])} />
             </div>
           </div>
           <div className="flex gap-3 mt-2">

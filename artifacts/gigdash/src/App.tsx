@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import FanHome from "@/pages/FanHome";
+import VenueProfile from "@/pages/VenueProfile";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/signup" component={Auth} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/fan" component={FanHome} />
+      <Route path="/venue/:id" component={VenueProfile} />
       <Route component={NotFound} />
     </Switch>
   );

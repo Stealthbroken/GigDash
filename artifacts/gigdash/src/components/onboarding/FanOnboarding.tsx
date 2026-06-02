@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import StepIndicator from "./StepIndicator";
+import CustomTagInput from "./CustomTagInput";
+import AvatarUpload from "./AvatarUpload";
 
 const GENRES = ["Rock", "Pop", "Jazz", "Hip-Hop", "Electronic", "Folk", "Classical", "R&B", "Country", "Metal"];
 const STEPS = ["Profile", "Your Taste"];
@@ -30,6 +32,7 @@ export default function FanOnboarding() {
   const [step, setStep] = useState(0);
 
   const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [location, setLocation] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
 
@@ -49,6 +52,9 @@ export default function FanOnboarding() {
             <h2 className="font-serif text-2xl font-bold mb-1">Set up your profile</h2>
             <p className="text-muted-foreground text-sm">Tell us a bit about yourself to personalise your experience.</p>
           </div>
+
+          <AvatarUpload url={avatarUrl} onChange={setAvatarUrl} color="emerald" />
+
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">Display Name</label>
             <input
@@ -69,7 +75,7 @@ export default function FanOnboarding() {
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Toronto, ON"
+                placeholder="e.g. Toronto, ON M5V 3A8"
                 className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -110,6 +116,7 @@ export default function FanOnboarding() {
               {GENRES.map((g) => (
                 <TagButton key={g} label={g} selected={genres.includes(g)} onClick={() => setGenres(toggle(genres, g))} />
               ))}
+              <CustomTagInput accent="emerald" onAdd={(tag) => setGenres((prev) => [...prev, tag])} />
             </div>
           </div>
 

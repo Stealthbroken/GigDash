@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import StepIndicator from "./StepIndicator";
+import CustomTagInput from "./CustomTagInput";
 
 const MOODS = [
   "Formal", "Informal", "Bar", "Lounge", "Outdoor", "Intimate",
@@ -50,7 +51,18 @@ export default function VenueOnboarding() {
 
   function next() { setStep((s) => s + 1); }
   function back() { setStep((s) => s - 1); }
-  function finish() { navigate("/"); }
+  function finish() {
+    const state = {
+      venueName,
+      address,
+      description,
+      size,
+      moods,
+      images,
+    };
+    const encoded = encodeURIComponent(btoa(JSON.stringify(state)));
+    navigate(`/venue/new?data=${encoded}`);
+  }
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -159,6 +171,7 @@ export default function VenueOnboarding() {
               {MOODS.map((m) => (
                 <TagButton key={m} label={m} selected={moods.includes(m)} onClick={() => setMoods(toggle(moods, m))} />
               ))}
+              <CustomTagInput accent="violet" onAdd={(tag) => setMoods((prev) => [...prev, tag])} />
             </div>
           </div>
 
