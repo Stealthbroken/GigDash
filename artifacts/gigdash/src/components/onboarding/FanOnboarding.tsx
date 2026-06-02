@@ -35,7 +35,7 @@ export default function FanOnboarding() {
 
   function next() { setStep((s) => s + 1); }
   function back() { setStep((s) => s - 1); }
-  function finish() { navigate("/"); }
+  function finish() { navigate("/fan"); }
 
   return (
     <div className="w-full max-w-lg mx-auto">

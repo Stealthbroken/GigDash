@@ -70,7 +70,7 @@ function EventCard({ event }: { event: EventSummary }) {
         )}
 
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {event.genres.map((g) => (
+          {(event.genres ?? []).map((g) => (
             <span key={g} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${genreColor(g)}`}>
               {g}
             </span>

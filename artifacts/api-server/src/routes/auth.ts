@@ -65,7 +65,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     });
   }
 
-  const session = req.session as Record<string, unknown>;
+  const session = req.session as unknown as Record<string, unknown>;
   session["userId"] = user.id;
   session["role"] = user.role;
 
@@ -100,7 +100,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const session = req.session as Record<string, unknown>;
+  const session = req.session as unknown as Record<string, unknown>;
   session["userId"] = user.id;
   session["role"] = user.role;
 
@@ -116,7 +116,7 @@ router.post("/auth/logout", (req, res): void => {
 });
 
 router.get("/auth/me", async (req, res): Promise<void> => {
-  const session = req.session as Record<string, unknown>;
+  const session = req.session as unknown as Record<string, unknown>;
   const userId = session["userId"];
   if (!userId) {
     res.status(401).json({ error: "Not authenticated." });

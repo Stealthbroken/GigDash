@@ -198,12 +198,14 @@ export default function Home() {
           <p className="text-muted-foreground text-sm">© 2026 GigDash. All rights reserved.</p>
         </div>
       </footer>
-      <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        defaultMode={authMode}
-        defaultRole={authRole}
-      />
+      {authOpen && (
+        <AuthModal
+          open={authOpen}
+          onClose={() => setAuthOpen(false)}
+          defaultMode={authMode}
+          defaultRole={authRole}
+        />
+      )}
     </div>
   );
 }
