@@ -66,20 +66,53 @@ Install dependencies:
 pnpm install
 ```
 
-### Step 5: Environment Variables
+### Step 5: Set Up a Shared Cloud Database (Neon — Free)
 
-The database and secrets stay on Replit, so you have two options:
+You don't need a local database. Everyone on the team connects to one **shared cloud PostgreSQL database** that runs 24/7. This is the easiest way to work.
 
-**Option A: Keep using Replit for development** (recommended for ICS4U)
-- Everyone develops on Replit, using the same shared workspace
-- GitHub is used for code review, not for running the app
+**Recommended provider: Neon** ([neon.tech](https://neon.tech))
+- Free tier: 10GB storage, 500MB RAM, 1000 compute hours/month
+- Serverless — sleeps when idle, wakes up instantly on query
+- No credit card required
 
-**Option B: Set up local dev**
-- Create a local PostgreSQL (install via `brew install postgresql` or Docker)
-- Each dev copies `.env.example` to `.env` and fills in their own `DATABASE_URL`
-- The API server, frontend, and DB all run locally
+**How to set it up (one person does this):**
+1. Go to [neon.tech](https://neon.tech) and sign up (free, use GitHub login)
+2. Create a new project — name it `gigdash`
+3. Neon gives you a connection string like:
+   `postgresql://username:password@ep-xxx-xxx.us-east-1.aws.neon.tech/gigdash?sslmode=require`
+4. Copy that string
+5. In the Replit project, add it as a secret:
+   - Replit sidebar > Secrets (lock icon) > Add new
+   - Key: `DATABASE_URL` | Value: the Neon connection string
+6. In GitHub repo Settings > Secrets and variables > Actions > New repository secret:
+   - Name: `DATABASE_URL` | Value: the Neon connection string
+7. Push the schema to Neon:
+   ```bash
+   pnpm --filter @workspace/db run push
+   ```
+8. Seed the database:
+   ```bash
+   pnpm --filter @workspace/scripts run seed
+   ```
 
-For ICS4U, **Option A is strongly recommended** — keep using Replit for development and GitHub for collaboration.
+**How each team member uses it:**
+1. Clone the repo locally
+2. Copy `.env.example` to `.env`
+3. Paste the same `DATABASE_URL` into `.env`
+4. Run `pnpm install`
+5. `pnpm --filter @workspace/api-server run dev` — the server connects to the cloud DB
+6. `pnpm --filter @workspace/gigdash run dev` — frontend talks to your local API, which talks to Neon
+
+**Why this is better than local PostgreSQL:**
+- No `brew install postgresql`, no Docker, no `pg_ctl`
+- Everyone sees the same data (events, venues, users) in real time
+- The database stays alive when you close your laptop
+- Your teacher can see the live data by visiting the deployed app
+
+**What about the SESSION_SECRET?**
+- Each developer can use a different random string locally (it's only for cookie signing)
+- For the deployed app, use a single secret in Replit/GH Actions
+- Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ### Step 6: Replit GitHub Integration
 
