@@ -1,5 +1,15 @@
-import { db, usersTable, artistsTable, venuesTable, fansTable, eventsTable, eventArtistsTable } from "@workspace/db";
-import bcrypt from "bcryptjs";
+import { config } from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from workspace root before any @workspace/* imports that need env vars
+config({ path: path.resolve(__dirname, "../../.env") });
+
+const { db, usersTable, artistsTable, venuesTable, fansTable, eventsTable, eventArtistsTable } = await import("@workspace/db");
+const { default: bcrypt } = await import("bcryptjs");
 
 async function seed() {
   console.log("🌱 Seeding database...");
