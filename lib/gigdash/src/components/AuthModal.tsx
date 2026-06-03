@@ -95,7 +95,6 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
       }
 
       setUser(data);
-      onClose();
 
       if (mode === "signup") {
         navigate(`/onboarding?role=${role}`);

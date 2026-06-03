@@ -1,3 +1,13 @@
+import { config } from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env from workspace root (three levels up from this file: src -> db -> lib -> root)
+config({ path: resolve(__dirname, "../../../.env") });
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";

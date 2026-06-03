@@ -177,6 +177,17 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
     (e) => e.venue?.lat != null && e.venue?.lng != null
   );
 
+  // Group events by venue for stacked markers
+  const venueGroups = useMemo(() => {
+    const groups = new Map<string, typeof eventsWithCoords>();
+    for (const e of eventsWithCoords) {
+      const key = `${e.venue!.lat!.toFixed(6)},${e.venue!.lng!.toFixed(6)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(e);
+    }
+    return groups;
+  }, [eventsWithCoords]);
+
   return (
     <div className="flex h-full min-h-0 gap-3">
       {/* Map */}
@@ -198,40 +209,105 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
             centerRef={centerRef}
           />
           <MapFlyTo target={flyTarget} />
-          {eventsWithCoords.map((event) => {
-            const isFinalized = (event.artistCount ?? 0) > 0;
-            const isSelected = selectedEventId === event.id;
-            const icon = isFinalized
-              ? isSelected ? finalizedIconSelected : finalizedIcon
-              : isSelected ? planningIconSelected : planningIcon;
+          {Array.from(venueGroups.entries()).map(([key, group]) => {
+            const isMulti = group.length > 1;
+            const hasSelected = group.some((e) => selectedEventId === e.id);
+            // Determine the dominant icon type (finalized if any are finalized)
+            const hasFinalized = group.some((e) => (e.artistCount ?? 0) > 0);
+            const icon = hasFinalized
+              ? hasSelected ? finalizedIconSelected : finalizedIcon
+              : hasSelected ? planningIconSelected : planningIcon;
+
             return (
               <Marker
-                key={event.id}
-                position={[event.venue!.lat!, event.venue!.lng!]}
+                key={key}
+                position={[group[0].venue!.lat!, group[0].venue!.lng!]}
                 icon={icon}
                 eventHandlers={{
-                  click: () => onSelectEvent(event),
+                  click: () => {
+                    // If multiple events, select the first one; clicking again cycles
+                    onSelectEvent(group[0]);
+                  },
                 }}
               >
                 <Popup>
-                  <div className="text-sm leading-snug min-w-[160px]">
-                    <p className="font-semibold text-foreground leading-tight mb-1">
-                      {event.title}
+                  <div className="text-sm leading-snug min-w-[200px]">
+                    <p className="font-semibold text-foreground mb-2">
+                      {group[0].venue?.name}
+                      {isMulti && (
+                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                          ({group.length} events)
+                        </span>
+                      )}
                     </p>
-                    <p className="text-muted-foreground text-xs">{event.venue?.name}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">
-                      {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
-                    </p>
-                    <span
-                      className={`inline-block mt-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ${
-                        isFinalized ? "bg-emerald-500" : "bg-red-500"
-                      }`}
-                    >
-                      {isFinalized ? "♪ Finalized" : "! Planning"}
-                    </span>
+                    <div className="space-y-2">
+                      {group.map((event) => {
+                        const evFinalized = (event.artistCount ?? 0) > 0;
+                        return (
+                          <div
+                            key={event.id}
+                            className={`rounded-lg border p-2 cursor-pointer transition-colors ${
+                              selectedEventId === event.id
+                                ? "border-amber-500/50 bg-amber-500/10"
+                                : "border-border hover:bg-secondary"
+                            }`}
+                            onClick={() => onSelectEvent(event)}
+                          >
+                            <p className="font-medium text-sm leading-tight">
+                              {event.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
+                            </p>
+                            <span
+                              className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ${
+                                evFinalized ? "bg-emerald-500" : "bg-red-500"
+                              }`}
+                            >
+                              {evFinalized ? "♪ Finalized" : "! Planning"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </Popup>
               </Marker>
+            );
+          })}
+          {/* Count badges for multi-event venues */}
+          {Array.from(venueGroups.entries()).map(([key, group]) => {
+            if (group.length <= 1) return null;
+            return (
+              <Marker
+                key={`badge-${key}`}
+                position={[group[0].venue!.lat!, group[0].venue!.lng!]}
+                icon={L.divIcon({
+                  className: "",
+                  html: `<div style="
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background: #f59e0b;
+                    color: white;
+                    font-size: 11px;
+                    font-weight: 700;
+                    font-family: system-ui, sans-serif;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid white;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    pointer-events: none;
+                  ">${group.length}</div>`,
+                  iconSize: [0, 0],
+                  iconAnchor: [0, 0],
+                })}
+              />
             );
           })}
         </MapContainer>
