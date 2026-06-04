@@ -18,6 +18,8 @@ tags:
     description: Fan profiles
   - name: venues
     description: Venue profiles
+  - name: geo
+    description: Location search
 paths:
   /healthz:
     get:
@@ -117,6 +119,193 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /auth/settings:
+    get:
+      operationId: getAccountSettings
+      tags: [auth]
+      summary: Get account settings
+      responses:
+        "200":
+          description: Account settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSettings"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/settings/username:
+    patch:
+      operationId: changeUsername
+      tags: [auth]
+      summary: Change username (30-day cooldown)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeUsernameInput"
+      responses:
+        "200":
+          description: Username updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSettings"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Cooldown active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/settings/password:
+    patch:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordInput"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordChangeResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated or wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/settings/avatar:
+    patch:
+      operationId: changeAvatar
+      tags: [auth]
+      summary: Update profile picture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeAvatarInput"
+      responses:
+        "200":
+          description: Avatar updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSession"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/settings/location:
+    patch:
+      operationId: changeLocation
+      tags: [auth]
+      summary: Set home location (geocoded)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeLocationInput"
+      responses:
+        "200":
+          description: Location updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSettings"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Geocoding service error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /geo/search:
+    get:
+      operationId: searchGeoPlaces
+      tags: [geo]
+      summary: Search for real cities, towns, or postal codes
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: Matching places
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeoPlaceList"
+        "502":
+          description: Geocoding service error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /events:
     get:
       operationId: listEvents
@@ -131,6 +320,22 @@ paths:
           name: location
           schema:
             type: string
+          description: Filter by venue name or address substring
+        - in: query
+          name: nearLat
+          schema:
+            type: number
+          description: Center latitude for proximity filter
+        - in: query
+          name: nearLng
+          schema:
+            type: number
+          description: Center longitude for proximity filter
+        - in: query
+          name: radiusKm
+          schema:
+            type: number
+          description: Radius in km (default 10, min 1, max 10)
         - in: query
           name: artistName
           schema:
@@ -276,6 +481,29 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 
   /venues/me:
+    get:
+      operationId: getVenueMe
+      tags: [venues]
+      summary: Get current venue profile
+      responses:
+        "200":
+          description: Venue profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     patch:
       operationId: updateVenueMe
       tags: [venues]
@@ -365,6 +593,109 @@ components:
           type: string
         role:
           type: string
+        avatarUrl:
+          type: ["string", "null"]
+        locationLabel:
+          type: ["string", "null"]
+        locationLat:
+          type: ["number", "null"]
+        locationLng:
+          type: ["number", "null"]
+
+    AccountSettings:
+      type: object
+      required: [id, username, email, role, canChangeUsername]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        usernameChangedAt:
+          type: ["string", "null"]
+          format: date-time
+        canChangeUsername:
+          type: boolean
+        nextUsernameChangeAt:
+          type: ["string", "null"]
+          format: date-time
+        locationLabel:
+          type: ["string", "null"]
+        locationLat:
+          type: ["number", "null"]
+        locationLng:
+          type: ["number", "null"]
+
+    GeoPlace:
+      type: object
+      required: [label, lat, lng]
+      properties:
+        label:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+
+    GeoPlaceList:
+      type: object
+      required: [places]
+      properties:
+        places:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeoPlace"
+
+    ChangeLocationInput:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 0
+          maxLength: 120
+        locationLabel:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+
+    ChangeUsernameInput:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 20
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    ChangeAvatarInput:
+      type: object
+      properties:
+        avatarUrl:
+          type: ["string", "null"]
+
+    PasswordChangeResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
 
     SignupInput:
       type: object
@@ -556,7 +887,7 @@ components:
 
     VenueOnboardingInput:
       type: object
-      required: [name, address, moods]
+      required: [name, address, lat, lng, moods]
       properties:
         name:
           type: string
@@ -565,6 +896,13 @@ components:
         address:
           type: string
           minLength: 1
+          description: Full address label from geocoding suggestion
+        lat:
+          type: number
+          description: WGS84 latitude from geocoding suggestion
+        lng:
+          type: number
+          description: WGS84 longitude from geocoding suggestion
         description:
           type: string
         size:

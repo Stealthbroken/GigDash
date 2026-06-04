@@ -18,6 +18,78 @@ export interface UserSession {
   username: string;
   email: string;
   role: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  locationLabel?: string | null;
+  /** @nullable */
+  locationLat?: number | null;
+  /** @nullable */
+  locationLng?: number | null;
+}
+
+export interface AccountSettings {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  usernameChangedAt?: string | null;
+  canChangeUsername: boolean;
+  /** @nullable */
+  nextUsernameChangeAt?: string | null;
+  /** @nullable */
+  locationLabel?: string | null;
+  /** @nullable */
+  locationLat?: number | null;
+  /** @nullable */
+  locationLng?: number | null;
+}
+
+export interface GeoPlace {
+  label: string;
+  lat: number;
+  lng: number;
+}
+
+export interface GeoPlaceList {
+  places: GeoPlace[];
+}
+
+export interface ChangeLocationInput {
+  /**
+     * @minLength 0
+     * @maxLength 120
+     */
+  query?: string;
+  locationLabel?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface ChangeUsernameInput {
+  /**
+     * @minLength 2
+     * @maxLength 20
+     */
+  username: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  /** @minLength 8 */
+  newPassword: string;
+}
+
+export interface ChangeAvatarInput {
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export interface PasswordChangeResult {
+  ok: boolean;
 }
 
 export interface SignupInput {
@@ -133,6 +205,10 @@ export interface VenueOnboardingInput {
   name: string;
   /** @minLength 1 */
   address: string;
+  /** WGS84 latitude from geocoding suggestion */
+  lat: number;
+  /** WGS84 longitude from geocoding suggestion */
+  lng: number;
   description?: string;
   size?: string;
   moods: string[];
@@ -159,9 +235,31 @@ export interface FanProfile {
   genres?: string[];
 }
 
+export type SearchGeoPlacesParams = {
+/**
+ * @minLength 2
+ */
+q: string;
+};
+
 export type ListEventsParams = {
 genre?: string;
+/**
+ * Filter by venue name or address substring
+ */
 location?: string;
+/**
+ * Center latitude for proximity filter
+ */
+nearLat?: number;
+/**
+ * Center longitude for proximity filter
+ */
+nearLng?: number;
+/**
+ * Radius in km (default 75, max 200)
+ */
+radiusKm?: number;
 artistName?: string;
 limit?: number;
 offset?: number;
