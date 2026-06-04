@@ -1,56 +1,26 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  type ReactNode,
+  type MutableRefObject,
+} from "react";
+import { MapContainer, TileLayer, Circle, ZoomControl, useMap, useMapEvents } from "react-leaflet";
+import { distanceKm, zoomForRadiusKm } from "@/lib/mapView";
 import L from "leaflet";
 import type { EventSummary } from "@workspace/api-client-react";
+import VenueMapMarker from "./VenueMapMarker";
+import type { MarkerStatus } from "./mapMarkers";
 
-/* ───── Custom marker icons ───── */
+const MAP_TILES =
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const MAP_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
-function createIcon(type: "planning" | "finalized", selected = false): L.Icon {
-  const color = type === "planning" ? "#ef4444" : "#10b981"; // red-500 / emerald-500
-  const symbol = type === "planning" ? "!" : "♪";
-  const size = selected ? 42 : 32;
-  const height = selected ? 52 : 40;
-  const ring = selected
-    ? `<circle cx="${size / 2}" cy="${size / 2 - 2}" r="${size / 2 - 1}" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>`
-    : "";
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${height}" viewBox="0 0 ${size} ${height}">
-      <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.4"/>
-        </filter>
-      </defs>
-      <path d="M${size / 2} 0C${size * 0.2238} 0 0 ${size * 0.2238} 0 ${size / 2}c0 ${size * 0.3313} ${size / 2} ${size * 0.75} ${size / 2} ${size * 0.75}s${size / 2}-${size * 0.4188} ${size / 2}-${size * 0.75}C${size} ${size * 0.2238} ${size * 0.7763} 0 ${size / 2} 0z" fill="${color}" filter="url(#shadow)"/>
-      ${ring}
-      <text x="${size / 2}" y="${size / 2 + 2}" text-anchor="middle" dominant-baseline="central" fill="white" font-size="${selected ? 17 : 14}" font-weight="bold" font-family="system-ui">${symbol}</text>
-    </svg>
-  `;
-  return L.icon({
-    iconUrl: "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg.trim()))),
-    iconSize: [size, height],
-    iconAnchor: [size / 2, height],
-    popupAnchor: [0, -(height - 4)],
-    className: "",
-  });
-}
-
-const planningIcon = createIcon("planning");
-const finalizedIcon = createIcon("finalized");
-const planningIconSelected = createIcon("planning", true);
-const finalizedIconSelected = createIcon("finalized", true);
-
-/* ───── Helpers ───── */
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function eventStatus(event: EventSummary): MarkerStatus {
+  return (event.artistCount ?? 0) > 0 ? "finalized" : "planning";
 }
 
 function formatDate(dateStr: string): string {
@@ -63,9 +33,15 @@ function formatTime(dateStr: string): string {
   return d.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-/* ───── MapFlyTo — flies to an event when clicked in the list ───── */
-
-function MapFlyTo({ target }: { target: [number, number] | null }) {
+function MapFlyTo({
+  target,
+  zoom = 15,
+  suppressRef,
+}: {
+  target: [number, number] | null;
+  zoom?: number;
+  suppressRef: MutableRefObject<boolean>;
+}) {
   const map = useMap();
   const lastTargetRef = useRef<[number, number] | null>(null);
 
@@ -74,13 +50,67 @@ function MapFlyTo({ target }: { target: [number, number] | null }) {
     const last = lastTargetRef.current;
     if (last && last[0] === target[0] && last[1] === target[1]) return;
     lastTargetRef.current = target;
-    map.flyTo(target, 15, { duration: 1.5 });
-  }, [target, map]);
+    suppressRef.current = true;
+    map.flyTo(target, zoom, { duration: 1.2 });
+  }, [target, zoom, map, suppressRef]);
 
   return null;
 }
 
-/* ───── MapBounds — tracks bounds and reports visible events ───── */
+function MapFitRadius({
+  center,
+  radiusKm,
+  enabled,
+  refitToken,
+  suppressRef,
+}: {
+  center: [number, number];
+  radiusKm: number;
+  enabled: boolean;
+  refitToken: number;
+  suppressRef: MutableRefObject<boolean>;
+}) {
+  const map = useMap();
+  const lastKeyRef = useRef("");
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const key = `${center[0].toFixed(5)},${center[1].toFixed(5)},${radiusKm},${refitToken}`;
+    if (lastKeyRef.current === key) return;
+    lastKeyRef.current = key;
+
+    const zoom = zoomForRadiusKm(radiusKm, center[0]);
+    suppressRef.current = true;
+    map.setView(center, zoom, { animate: true, duration: 0.45 });
+  }, [center, radiusKm, enabled, refitToken, map, suppressRef]);
+
+  return null;
+}
+
+function MapExploreDetector({
+  onExplore,
+  suppressRef,
+}: {
+  onExplore: () => void;
+  suppressRef: MutableRefObject<boolean>;
+}) {
+  const map = useMap();
+
+  useMapEvents({
+    dragstart: () => {
+      if (!suppressRef.current) onExplore();
+    },
+    moveend: () => {
+      suppressRef.current = false;
+    },
+    zoomend: () => {
+      suppressRef.current = false;
+    },
+  });
+
+  return null;
+}
 
 function MapBounds({
   events,
@@ -89,79 +119,108 @@ function MapBounds({
 }: {
   events: EventSummary[];
   onVisibleChange: (visible: EventSummary[]) => void;
-  centerRef: React.MutableRefObject<L.LatLng | null>;
+  centerRef: MutableRefObject<L.LatLng | null>;
 }) {
   const map = useMap();
+
+  const updateVisible = useCallback(() => {
+    if (!map.getBounds().isValid()) return;
+    const bounds = map.getBounds();
+    centerRef.current = map.getCenter();
+    const visible = events.filter((e) => {
+      const lat = e.venue?.lat;
+      const lng = e.venue?.lng;
+      if (lat == null || lng == null) return false;
+      return bounds.contains([lat, lng]);
+    });
+    onVisibleChange(visible);
+  }, [events, map, onVisibleChange, centerRef]);
+
   useMapEvents({
-    moveend() {
-      const bounds = map.getBounds();
-      centerRef.current = map.getCenter();
-      const visible = events.filter((e) => {
-        const lat = e.venue?.lat;
-        const lng = e.venue?.lng;
-        if (lat == null || lng == null) return false;
-        return bounds.contains([lat, lng]);
-      });
-      onVisibleChange(visible);
-    },
+    moveend: updateVisible,
+    zoomend: updateVisible,
   });
+
   useEffect(() => {
-    const check = () => {
-      if (!map.getBounds().isValid()) {
-        requestAnimationFrame(check);
-        return;
-      }
-      const bounds = map.getBounds();
-      centerRef.current = map.getCenter();
-      const visible = events.filter((e) => {
-        const lat = e.venue?.lat;
-        const lng = e.venue?.lng;
-        if (lat == null || lng == null) return false;
-        return bounds.contains([lat, lng]);
-      });
-      onVisibleChange(visible);
-    };
-    const id = requestAnimationFrame(check);
+    const id = requestAnimationFrame(updateVisible);
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [updateVisible]);
+
   return null;
 }
 
-/* ───── MapView ───── */
-
-interface MapViewProps {
-  events: EventSummary[];
-  selectedEventId?: number | null;
-  onSelectEvent: (event: EventSummary) => void;
+function sortByDistance(
+  list: EventSummary[],
+  lat: number,
+  lng: number,
+): EventSummary[] {
+  return [...list].sort((a, b) => {
+    const da = distanceKm(lat, lng, a.venue!.lat!, a.venue!.lng!);
+    const db = distanceKm(lat, lng, b.venue!.lat!, b.venue!.lng!);
+    return da - db;
+  });
 }
 
-export default function MapView({ events, selectedEventId, onSelectEvent }: MapViewProps) {
-  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
-  const [visibleEvents, setVisibleEvents] = useState<EventSummary[]>(events);
+interface MapViewProps {
+  header?: ReactNode;
+  /** All markers to render on the map (full fetch area) */
+  mapEvents: EventSummary[];
+  /** Events within the active radius — sidebar when not browsing */
+  sidebarEvents: EventSummary[];
+  selectedEventId?: number | null;
+  onSelectEvent: (event: EventSummary) => void;
+  onSidebarCountChange?: (count: number) => void;
+  viewCenter: [number, number];
+  radiusKm: number;
+  mapExplored: boolean;
+  onMapExplored: () => void;
+  onReturnToView: () => void;
+  refitToken: number;
+  isRefreshing?: boolean;
+  viewZoom?: number;
+}
 
-  useEffect(() => {
-    setVisibleEvents(events);
-  }, [events]);
+export default function MapView({
+  header,
+  mapEvents,
+  sidebarEvents,
+  selectedEventId,
+  onSelectEvent,
+  onSidebarCountChange,
+  viewCenter,
+  radiusKm,
+  mapExplored,
+  onMapExplored,
+  onReturnToView,
+  refitToken,
+  isRefreshing = false,
+  viewZoom = 12,
+}: MapViewProps) {
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+  const [visibleOnScreen, setVisibleOnScreen] = useState<EventSummary[]>([]);
+  const suppressProgrammaticRef = useRef(false);
 
   const centerRef = useRef<L.LatLng | null>(null);
+  const mapCenter = viewCenter;
 
-  const mapCenter: [number, number] = useMemo(() => {
-    const withCoords = events.filter((e) => e.venue?.lat != null && e.venue?.lng != null);
-    if (withCoords.length === 0) return [43.6532, -79.3832];
-    const avgLat = withCoords.reduce((s, e) => s + e.venue!.lat!, 0) / withCoords.length;
-    const avgLng = withCoords.reduce((s, e) => s + e.venue!.lng!, 0) / withCoords.length;
-    return [avgLat, avgLng];
-  }, [events]);
+  const sortedSidebar = useMemo(() => {
+    const [lat, lng] = viewCenter;
+    if (mapExplored) {
+      const pivot = centerRef.current;
+      const sortLat = pivot?.lat ?? lat;
+      const sortLng = pivot?.lng ?? lng;
+      return sortByDistance(visibleOnScreen, sortLat, sortLng);
+    }
+    return sortByDistance(
+      sidebarEvents.filter((e) => e.venue?.lat != null && e.venue?.lng != null),
+      lat,
+      lng,
+    );
+  }, [mapExplored, visibleOnScreen, sidebarEvents, viewCenter]);
 
-  const sortedVisible = useMemo(() => {
-    const center = centerRef.current;
-    if (!center || visibleEvents.length === 0) return visibleEvents;
-    return [...visibleEvents].sort((a, b) => {
-      const da = haversine(center.lat, center.lng, a.venue!.lat!, a.venue!.lng!);
-      const db = haversine(center.lat, center.lng, b.venue!.lat!, b.venue!.lng!);
-      return da - db;
-    });
-  }, [visibleEvents]);
+  useEffect(() => {
+    onSidebarCountChange?.(sortedSidebar.length);
+  }, [sortedSidebar.length, onSidebarCountChange]);
 
   const handleListClick = useCallback(
     (event: EventSummary) => {
@@ -170,16 +229,15 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
         setFlyTarget([event.venue.lat, event.venue.lng]);
       }
     },
-    [onSelectEvent]
+    [onSelectEvent],
   );
 
-  const eventsWithCoords = events.filter(
-    (e) => e.venue?.lat != null && e.venue?.lng != null
+  const eventsWithCoords = mapEvents.filter(
+    (e) => e.venue?.lat != null && e.venue?.lng != null,
   );
 
-  // Group events by venue for stacked markers
   const venueGroups = useMemo(() => {
-    const groups = new Map<string, typeof eventsWithCoords>();
+    const groups = new Map<string, EventSummary[]>();
     for (const e of eventsWithCoords) {
       const key = `${e.venue!.lat!.toFixed(6)},${e.venue!.lng!.toFixed(6)}`;
       if (!groups.has(key)) groups.set(key, []);
@@ -188,189 +246,157 @@ export default function MapView({ events, selectedEventId, onSelectEvent }: MapV
     return groups;
   }, [eventsWithCoords]);
 
+  const showRadiusCircle = !mapExplored;
+
   return (
-    <div className="flex h-full min-h-0 gap-3">
-      {/* Map */}
-      <div className="flex-1 relative rounded-xl bg-card">
-        <MapContainer
-          center={mapCenter}
-          zoom={13}
-          scrollWheelZoom={true}
-          style={{ height: "100%", width: "100%", borderRadius: "0.75rem" }}
-          className="z-0"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapBounds
-            events={events}
-            onVisibleChange={setVisibleEvents}
-            centerRef={centerRef}
-          />
-          <MapFlyTo target={flyTarget} />
-          {Array.from(venueGroups.entries()).map(([key, group]) => {
-            const isMulti = group.length > 1;
-            const hasSelected = group.some((e) => selectedEventId === e.id);
-            // Determine the dominant icon type (finalized if any are finalized)
-            const hasFinalized = group.some((e) => (e.artistCount ?? 0) > 0);
-            const icon = hasFinalized
-              ? hasSelected ? finalizedIconSelected : finalizedIcon
-              : hasSelected ? planningIconSelected : planningIcon;
-
-            return (
-              <Marker
-                key={key}
-                position={[group[0].venue!.lat!, group[0].venue!.lng!]}
-                icon={icon}
-                eventHandlers={{
-                  click: () => {
-                    // If multiple events, select the first one; clicking again cycles
-                    onSelectEvent(group[0]);
-                  },
+    <div className="fan-map-stage flex h-full min-h-0 gap-3">
+      <div className="fan-map-column flex flex-1 flex-col min-h-0 min-w-0 gap-2">
+        {header}
+        <div className="fan-map-shell flex-1 relative min-h-0">
+          <MapContainer
+            center={mapCenter}
+            zoom={viewZoom}
+            zoomControl={false}
+            scrollWheelZoom={true}
+            style={{ height: "100%", width: "100%" }}
+            className={`fan-map-container${isRefreshing ? " fan-map-container--refreshing" : ""}`}
+          >
+            <ZoomControl position="bottomright" />
+            <TileLayer attribution={MAP_ATTRIBUTION} url={MAP_TILES} />
+            <MapExploreDetector
+              onExplore={onMapExplored}
+              suppressRef={suppressProgrammaticRef}
+            />
+            <MapFitRadius
+              center={viewCenter}
+              radiusKm={radiusKm}
+              enabled={!mapExplored}
+              refitToken={refitToken}
+              suppressRef={suppressProgrammaticRef}
+            />
+            {showRadiusCircle && (
+              <Circle
+                center={viewCenter}
+                radius={radiusKm * 1000}
+                pathOptions={{
+                  color: "hsl(160 55% 45%)",
+                  weight: 2,
+                  opacity: 0.85,
+                  fillColor: "hsl(160 55% 42%)",
+                  fillOpacity: 0.12,
+                  dashArray: "7 5",
                 }}
-              >
-                <Popup>
-                  <div className="text-sm leading-snug min-w-[200px]">
-                    <p className="font-semibold text-foreground mb-2">
-                      {group[0].venue?.name}
-                      {isMulti && (
-                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                          ({group.length} events)
-                        </span>
-                      )}
-                    </p>
-                    <div className="space-y-2">
-                      {group.map((event) => {
-                        const evFinalized = (event.artistCount ?? 0) > 0;
-                        return (
-                          <div
-                            key={event.id}
-                            className={`rounded-lg border p-2 cursor-pointer transition-colors ${
-                              selectedEventId === event.id
-                                ? "border-amber-500/50 bg-amber-500/10"
-                                : "border-border hover:bg-secondary"
-                            }`}
-                            onClick={() => onSelectEvent(event)}
-                          >
-                            <p className="font-medium text-sm leading-tight">
-                              {event.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
-                            </p>
-                            <span
-                              className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ${
-                                evFinalized ? "bg-emerald-500" : "bg-red-500"
-                              }`}
-                            >
-                              {evFinalized ? "♪ Finalized" : "! Planning"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-          {/* Count badges for multi-event venues */}
-          {Array.from(venueGroups.entries()).map(([key, group]) => {
-            if (group.length <= 1) return null;
-            return (
-              <Marker
-                key={`badge-${key}`}
-                position={[group[0].venue!.lat!, group[0].venue!.lng!]}
-                icon={L.divIcon({
-                  className: "",
-                  html: `<div style="
-                    position: absolute;
-                    top: -8px;
-                    right: -8px;
-                    background: #f59e0b;
-                    color: white;
-                    font-size: 11px;
-                    font-weight: 700;
-                    font-family: system-ui, sans-serif;
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border: 2px solid white;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-                    z-index: 1000;
-                    pointer-events: none;
-                  ">${group.length}</div>`,
-                  iconSize: [0, 0],
-                  iconAnchor: [0, 0],
-                })}
               />
-            );
-          })}
-        </MapContainer>
+            )}
+            {mapExplored && (
+              <MapBounds
+                events={eventsWithCoords}
+                onVisibleChange={setVisibleOnScreen}
+                centerRef={centerRef}
+              />
+            )}
+            <MapFlyTo target={flyTarget} suppressRef={suppressProgrammaticRef} />
+            {Array.from(venueGroups.entries()).map(([key, group]) => (
+              <VenueMapMarker
+                key={key}
+                group={group}
+                selectedEventId={selectedEventId}
+                onSelectEvent={onSelectEvent}
+              />
+            ))}
 
-        {/* Legend overlay — z-[1000] sits above Leaflet tiles (~400) but below popups */}
-        <div className="absolute bottom-8 left-14 z-[1000] bg-card/90 backdrop-blur-md border border-border rounded-xl px-3 py-2 shadow-lg flex items-center gap-3 text-xs pointer-events-none">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-full bg-red-500 shadow-sm" />
-            <span className="text-muted-foreground">Planning (!)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
-            <span className="text-muted-foreground">Finalized (♪)</span>
+          </MapContainer>
+
+          {isRefreshing && (
+            <div className="fan-map-refresh-overlay" aria-hidden>
+              <div className="fan-map-refresh-shimmer" />
+            </div>
+          )}
+
+          {mapExplored && (
+            <button
+              type="button"
+              className="fan-return-view"
+              onClick={onReturnToView}
+            >
+              Return to view
+            </button>
+          )}
+
+          <div className="fan-map-legend absolute bottom-4 left-3 z-[400] pointer-events-none">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="fan-legend-dot fan-legend-dot--planning" aria-hidden />
+                <span className="text-foreground/80">Planning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="fan-legend-dot fan-legend-dot--finalized" aria-hidden />
+                <span className="text-foreground/80">Finalized</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="fan-legend-cluster-sample" aria-hidden>
+                  3
+                </span>
+                <span className="text-foreground/80">Several gigs (tap for list)</span>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Side list — fixed width so it never collapses */}
-      <div className="w-72 shrink-0 flex flex-col min-h-0 rounded-2xl border border-border bg-card">
-        <div className="px-4 py-3 border-b border-border shrink-0">
-          <h2 className="font-semibold text-sm">Events nearby</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {sortedVisible.length} visible on screen
+      <div className="fan-side-panel shrink-0 flex flex-col min-h-0">
+        <div className="fan-side-panel-header px-4 py-3 shrink-0">
+          <h2 className="font-semibold text-sm text-foreground">Events nearby</h2>
+          <p className="fan-side-panel-subtitle text-xs mt-0.5">
+            {mapExplored
+              ? `${sortedSidebar.length} on screen (browsing)`
+              : `${sortedSidebar.length} within ${radiusKm} km`}
           </p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
-          {sortedVisible.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <span className="text-3xl mb-2 block">🎯</span>
-              <p className="text-xs">Zoom out or pan to see more events.</p>
+          {sortedSidebar.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <span className="text-3xl mb-2 block opacity-80">🗺️</span>
+              <p className="text-xs font-medium">No events in this area</p>
+              <p className="text-[11px] mt-1 opacity-80">
+                {mapExplored
+                  ? "Pan the map or return to your search radius."
+                  : "No gigs in your radius — widen the slider or check the map for nearby markers."}
+              </p>
             </div>
           ) : (
-            sortedVisible.map((event) => {
+            sortedSidebar.map((event) => {
               const isSelected = selectedEventId === event.id;
-              const isFinalized = (event.artistCount ?? 0) > 0;
+              const finalized = eventStatus(event) === "finalized";
               return (
                 <button
                   key={event.id}
+                  type="button"
                   onClick={() => handleListClick(event)}
-                  className={`w-full text-left rounded-xl border p-3 transition-all ${
-                    isSelected
-                      ? "border-amber-500/50 bg-amber-500/10"
-                      : "border-border hover:border-amber-500/30 hover:bg-secondary"
+                  className={`fan-event-card w-full text-left rounded-xl border p-3 transition-all ${
+                    isSelected ? "fan-event-card--selected" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <span
-                      className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white mt-0.5 ${
-                        isFinalized ? "bg-emerald-500" : "bg-red-500"
+                      className={`fan-event-status-dot shrink-0 ${
+                        finalized
+                          ? "fan-event-status-dot--finalized"
+                          : "fan-event-status-dot--planning"
                       }`}
+                      aria-hidden
                     >
-                      {isFinalized ? "♪" : "!"}
+                      {finalized ? "♪" : "!"}
                     </span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm leading-tight truncate">
-                        {event.title}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm leading-tight truncate">{event.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {event.venue?.name}
                       </p>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground/80 mt-0.5">
                         {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
-                        {event.durationMinutes && ` · ${event.durationMinutes} min`}
+                        {event.durationMinutes ? ` · ${event.durationMinutes} min` : ""}
                       </p>
                     </div>
                   </div>

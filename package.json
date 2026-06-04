@@ -8,6 +8,7 @@
     "scripts"
   ],
   "scripts": {
+    "dev": "dotenv -e .env -- concurrently -k -n api,web -c blue,green \"pnpm --filter @workspace/api-server run dev\" \"pnpm --filter @workspace/gigdash run dev\"",
     "build": "npm run typecheck && npm run build:workspaces",
     "build:workspaces": "npm run build --workspaces --if-present",
     "typecheck:libs": "tsc --build",
@@ -16,6 +17,8 @@
   "private": true,
   "devDependencies": {
     "@types/node": "catalog:",
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^10.0.0",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3"
   }

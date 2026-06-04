@@ -20,16 +20,24 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountSettings,
   ApiError,
   ArtistOnboardingInput,
   ArtistProfile,
+  ChangeAvatarInput,
+  ChangeLocationInput,
+  ChangePasswordInput,
+  ChangeUsernameInput,
   EventDetail,
   EventList,
   FanOnboardingInput,
   FanProfile,
+  GeoPlaceList,
   HealthStatus,
   ListEventsParams,
   LoginInput,
+  PasswordChangeResult,
+  SearchGeoPlacesParams,
   SignupInput,
   UserSession,
   Venue,
@@ -403,6 +411,451 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAccountSettingsUrl = () => {
+
+
+
+
+  return `/api/auth/settings`
+}
+
+/**
+ * @summary Get account settings
+ */
+export const getAccountSettings = async ( options?: RequestInit): Promise<AccountSettings> => {
+
+  return customFetch<AccountSettings>(getGetAccountSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAccountSettingsQueryKey = () => {
+    return [
+    `/api/auth/settings`
+    ] as const;
+    }
+
+
+export const getGetAccountSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAccountSettings>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccountSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAccountSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccountSettings>>> = ({ signal }) => getAccountSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAccountSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAccountSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAccountSettings>>>
+export type GetAccountSettingsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get account settings
+ */
+
+export function useGetAccountSettings<TData = Awaited<ReturnType<typeof getAccountSettings>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAccountSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAccountSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getChangeUsernameUrl = () => {
+
+
+
+
+  return `/api/auth/settings/username`
+}
+
+/**
+ * @summary Change username (30-day cooldown)
+ */
+export const changeUsername = async (changeUsernameInput: ChangeUsernameInput, options?: RequestInit): Promise<AccountSettings> => {
+
+  return customFetch<AccountSettings>(getChangeUsernameUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeUsernameInput,)
+  }
+);}
+
+
+
+
+export const getChangeUsernameMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeUsername>>, TError,{data: BodyType<ChangeUsernameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeUsername>>, TError,{data: BodyType<ChangeUsernameInput>}, TContext> => {
+
+const mutationKey = ['changeUsername'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeUsername>>, {data: BodyType<ChangeUsernameInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeUsername(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeUsernameMutationResult = NonNullable<Awaited<ReturnType<typeof changeUsername>>>
+    export type ChangeUsernameMutationBody = BodyType<ChangeUsernameInput>
+    export type ChangeUsernameMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Change username (30-day cooldown)
+ */
+export const useChangeUsername = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeUsername>>, TError,{data: BodyType<ChangeUsernameInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeUsername>>,
+        TError,
+        {data: BodyType<ChangeUsernameInput>},
+        TContext
+      > => {
+      return useMutation(getChangeUsernameMutationOptions(options));
+    }
+
+export const getChangePasswordUrl = () => {
+
+
+
+
+  return `/api/auth/settings/password`
+}
+
+/**
+ * @summary Change password
+ */
+export const changePassword = async (changePasswordInput: ChangePasswordInput, options?: RequestInit): Promise<PasswordChangeResult> => {
+
+  return customFetch<PasswordChangeResult>(getChangePasswordUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changePasswordInput,)
+  }
+);}
+
+
+
+
+export const getChangePasswordMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordInput>}, TContext> => {
+
+const mutationKey = ['changePassword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, {data: BodyType<ChangePasswordInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  changePassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
+    export type ChangePasswordMutationBody = BodyType<ChangePasswordInput>
+    export type ChangePasswordMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Change password
+ */
+export const useChangePassword = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,{data: BodyType<ChangePasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changePassword>>,
+        TError,
+        {data: BodyType<ChangePasswordInput>},
+        TContext
+      > => {
+      return useMutation(getChangePasswordMutationOptions(options));
+    }
+
+export const getChangeAvatarUrl = () => {
+
+
+
+
+  return `/api/auth/settings/avatar`
+}
+
+/**
+ * @summary Update profile picture
+ */
+export const changeAvatar = async (changeAvatarInput: ChangeAvatarInput, options?: RequestInit): Promise<UserSession> => {
+
+  return customFetch<UserSession>(getChangeAvatarUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeAvatarInput,)
+  }
+);}
+
+
+
+
+export const getChangeAvatarMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeAvatar>>, TError,{data: BodyType<ChangeAvatarInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeAvatar>>, TError,{data: BodyType<ChangeAvatarInput>}, TContext> => {
+
+const mutationKey = ['changeAvatar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeAvatar>>, {data: BodyType<ChangeAvatarInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeAvatar(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof changeAvatar>>>
+    export type ChangeAvatarMutationBody = BodyType<ChangeAvatarInput>
+    export type ChangeAvatarMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update profile picture
+ */
+export const useChangeAvatar = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeAvatar>>, TError,{data: BodyType<ChangeAvatarInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeAvatar>>,
+        TError,
+        {data: BodyType<ChangeAvatarInput>},
+        TContext
+      > => {
+      return useMutation(getChangeAvatarMutationOptions(options));
+    }
+
+export const getChangeLocationUrl = () => {
+
+
+
+
+  return `/api/auth/settings/location`
+}
+
+/**
+ * @summary Set home location (geocoded)
+ */
+export const changeLocation = async (changeLocationInput: ChangeLocationInput, options?: RequestInit): Promise<AccountSettings> => {
+
+  return customFetch<AccountSettings>(getChangeLocationUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changeLocationInput,)
+  }
+);}
+
+
+
+
+export const getChangeLocationMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeLocation>>, TError,{data: BodyType<ChangeLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeLocation>>, TError,{data: BodyType<ChangeLocationInput>}, TContext> => {
+
+const mutationKey = ['changeLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeLocation>>, {data: BodyType<ChangeLocationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeLocationMutationResult = NonNullable<Awaited<ReturnType<typeof changeLocation>>>
+    export type ChangeLocationMutationBody = BodyType<ChangeLocationInput>
+    export type ChangeLocationMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Set home location (geocoded)
+ */
+export const useChangeLocation = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeLocation>>, TError,{data: BodyType<ChangeLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeLocation>>,
+        TError,
+        {data: BodyType<ChangeLocationInput>},
+        TContext
+      > => {
+      return useMutation(getChangeLocationMutationOptions(options));
+    }
+
+export const getSearchGeoPlacesUrl = (params: SearchGeoPlacesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/geo/search?${stringifiedParams}` : `/api/geo/search`
+}
+
+/**
+ * @summary Search for real cities, towns, or postal codes
+ */
+export const searchGeoPlaces = async (params: SearchGeoPlacesParams, options?: RequestInit): Promise<GeoPlaceList> => {
+
+  return customFetch<GeoPlaceList>(getSearchGeoPlacesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchGeoPlacesQueryKey = (params?: SearchGeoPlacesParams,) => {
+    return [
+    `/api/geo/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchGeoPlacesQueryOptions = <TData = Awaited<ReturnType<typeof searchGeoPlaces>>, TError = ErrorType<ApiError>>(params: SearchGeoPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchGeoPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchGeoPlacesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchGeoPlaces>>> = ({ signal }) => searchGeoPlaces(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchGeoPlaces>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchGeoPlacesQueryResult = NonNullable<Awaited<ReturnType<typeof searchGeoPlaces>>>
+export type SearchGeoPlacesQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Search for real cities, towns, or postal codes
+ */
+
+export function useSearchGeoPlaces<TData = Awaited<ReturnType<typeof searchGeoPlaces>>, TError = ErrorType<ApiError>>(
+ params: SearchGeoPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchGeoPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchGeoPlacesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

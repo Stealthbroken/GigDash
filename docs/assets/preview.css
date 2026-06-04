@@ -1,0 +1,170 @@
+/* GigDash documentation theme — tuned for VS Code Markdown Preview */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+body {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background: linear-gradient(165deg, #0c0c12 0%, #12121c 45%, #0f1419 100%);
+  color: #e4e4e7;
+  padding: 1.5rem 2.5rem 3rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Space Grotesk", Inter, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 2.25rem;
+  color: #fbbf24;
+  border-bottom: 2px solid rgba(251, 191, 36, 0.35);
+  padding-bottom: 0.5rem;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: #a78bfa;
+  margin-top: 2.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+h3 {
+  font-size: 1.15rem;
+  color: #34d399;
+  margin-top: 1.75rem;
+}
+
+h4 {
+  color: #f472b6;
+  margin-top: 1.25rem;
+}
+
+a {
+  color: #34d399;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+a:hover {
+  color: #6ee7b7;
+  border-bottom-color: #6ee7b7;
+}
+
+strong {
+  color: #fafafa;
+}
+
+em {
+  color: #d4d4d8;
+}
+
+code {
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(30, 30, 46, 0.9);
+  color: #fde68a;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.15);
+}
+
+pre {
+  background: #16161f !important;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  border-radius: 10px;
+  padding: 1rem 1.15rem !important;
+  overflow-x: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+pre code {
+  background: transparent;
+  border: none;
+  color: #e4e4e7;
+  padding: 0;
+}
+
+blockquote {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1.15rem;
+  border-left: 4px solid #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: 0 8px 8px 0;
+  color: #d4d4d8;
+}
+
+blockquote p {
+  margin: 0.35rem 0;
+}
+
+blockquote strong {
+  color: #c4b5fd;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.92rem;
+}
+
+th {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+td {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgba(63, 63, 70, 0.6);
+  vertical-align: top;
+}
+
+tr:nth-child(even) td {
+  background: rgba(24, 24, 32, 0.6);
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(167, 139, 250, 0.5),
+    transparent
+  );
+  margin: 2.5rem 0;
+}
+
+ul,
+ol {
+  padding-left: 1.35rem;
+}
+
+li {
+  margin: 0.35rem 0;
+}
+
+img {
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+/* Mermaid diagrams */
+.mermaid {
+  background: rgba(22, 22, 31, 0.8);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid rgba(52, 211, 153, 0.15);
+}

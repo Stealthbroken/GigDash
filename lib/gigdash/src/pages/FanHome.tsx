@@ -1,104 +1,147 @@
-import { useState } from "react";
-import { useListEvents } from "@workspace/api-client-react";
-import type { EventSummary } from "@workspace/api-client-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useListEvents, useGetAccountSettings } from "@workspace/api-client-react";
+import type { EventSummary, GeoPlace } from "@workspace/api-client-react";
 import FanNav from "@/components/fan/FanNav";
+import FanMapToolbar from "@/components/fan/FanMapToolbar";
 import MapView from "@/components/fan/MapView";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_RADIUS_KM,
+  DEFAULT_MAP_ZOOM,
+  MAX_MAP_RADIUS_KM,
+} from "@/lib/constants";
+import { filterEventsByRadius } from "@/lib/mapView";
 
-const GENRE_OPTIONS = ["All", "Jazz", "Pop", "Folk", "Rock", "Hip-Hop", "Electronic", "Classical", "R&B", "Country", "Metal"];
-
-function genreColor(genre: string): string {
-  const map: Record<string, string> = {
-    Jazz: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    Pop: "bg-pink-500/20 text-pink-400 border-pink-500/30",
-    Folk: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    Rock: "bg-red-500/20 text-red-400 border-red-500/30",
-    "Hip-Hop": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    Electronic: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    Classical: "bg-slate-500/20 text-slate-400 border-slate-500/30",
-    "R&B": "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    Country: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    Metal: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-  };
-  return map[genre] ?? "bg-muted text-muted-foreground border-border";
+function placeFromSettings(
+  label: string | null | undefined,
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+): GeoPlace | null {
+  if (label && lat != null && lng != null) {
+    return { label, lat, lng };
+  }
+  return null;
 }
 
 export default function FanHome() {
   const [selectedGenre, setSelectedGenre] = useState("All");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [venueFilter, setVenueFilter] = useState("");
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [radiusKm, setRadiusKm] = useState(DEFAULT_MAP_RADIUS_KM);
+  const [mapExplored, setMapExplored] = useState(false);
+  const [refitToken, setRefitToken] = useState(0);
+  const [sidebarCount, setSidebarCount] = useState(0);
 
-  const { data, isLoading, error } = useListEvents({
+  const [mapLocationInput, setMapLocationInput] = useState("");
+  const [viewPlace, setViewPlace] = useState<GeoPlace | null>(null);
+  const defaultedFromSettings = useRef(false);
+
+  const { data: accountSettings } = useGetAccountSettings();
+  const debouncedVenue = useDebouncedValue(venueFilter.trim(), 300);
+
+  useEffect(() => {
+    if (defaultedFromSettings.current || !accountSettings) return;
+    const saved = placeFromSettings(
+      accountSettings.locationLabel,
+      accountSettings.locationLat,
+      accountSettings.locationLng,
+    );
+    if (saved) {
+      setViewPlace(saved);
+      setMapLocationInput(saved.label);
+    } else {
+      setViewPlace({
+        label: DEFAULT_MAP_CENTER.label,
+        lat: DEFAULT_MAP_CENTER.lat,
+        lng: DEFAULT_MAP_CENTER.lng,
+      });
+      setMapLocationInput(DEFAULT_MAP_CENTER.label);
+    }
+    defaultedFromSettings.current = true;
+  }, [accountSettings]);
+
+  const mapCenter = viewPlace ?? {
+    label: DEFAULT_MAP_CENTER.label,
+    lat: DEFAULT_MAP_CENTER.lat,
+    lng: DEFAULT_MAP_CENTER.lng,
+  };
+
+  const mapReady = defaultedFromSettings.current;
+
+  const { data, isLoading, isFetching, error } = useListEvents({
     genre: selectedGenre !== "All" ? selectedGenre : undefined,
-    location: locationFilter || undefined,
+    location: debouncedVenue || undefined,
+    nearLat: mapCenter.lat,
+    nearLng: mapCenter.lng,
+    radiusKm: MAX_MAP_RADIUS_KM,
     limit: 50,
   });
 
-  const events: EventSummary[] = data?.events ?? [];
+  const allEvents = data?.events ?? [];
+
+  const eventsInRadius = useMemo(
+    () => filterEventsByRadius(allEvents, mapCenter.lat, mapCenter.lng, radiusKm),
+    [allEvents, mapCenter.lat, mapCenter.lng, radiusKm],
+  );
+
+  const toolbarEventCount = mapExplored ? sidebarCount : eventsInRadius.length;
+
+  useEffect(() => {
+    setMapExplored(false);
+    setRefitToken((t) => t + 1);
+  }, [selectedGenre, debouncedVenue, viewPlace?.lat, viewPlace?.lng]);
+
+  useEffect(() => {
+    setSelectedEventId(null);
+  }, [selectedGenre, debouncedVenue, viewPlace?.lat, viewPlace?.lng]);
 
   const handleSelectEvent = (event: EventSummary) => {
     setSelectedEventId(event.id);
   };
 
+  const handleReturnToView = () => {
+    setMapExplored(false);
+    setRefitToken((t) => t + 1);
+  };
+
+  const handleRadiusChange = (km: number) => {
+    setRadiusKm(km);
+    if (!mapExplored) setRefitToken((t) => t + 1);
+  };
+
+  const showMap = mapReady && !error;
+  const isRefreshing = showMap && (isFetching || isLoading);
+
+  const toolbar = (
+    <FanMapToolbar
+      mapLocationInput={mapLocationInput}
+      onMapLocationInputChange={setMapLocationInput}
+      viewPlace={viewPlace}
+      onViewPlaceChange={setViewPlace}
+      radiusKm={radiusKm}
+      onRadiusKmChange={handleRadiusChange}
+      venueFilter={venueFilter}
+      onVenueFilterChange={setVenueFilter}
+      selectedGenre={selectedGenre}
+      onGenreChange={setSelectedGenre}
+      eventCount={toolbarEventCount}
+      isUpdating={isFetching && !mapExplored}
+      mapExplored={mapExplored}
+    />
+  );
+
   return (
-    <div className="flex flex-col overflow-hidden bg-background text-foreground" style={{ height: "100dvh" }}>
-      <FanNav />
+    <div className="fan-home flex flex-col overflow-hidden bg-background text-foreground">
+      <FanNav active="discover" />
 
-      {/* Compact filter bar — sits directly below the fixed nav */}
-      <div className="shrink-0 pt-14 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="px-4 py-2 flex items-center gap-3">
-          {/* Location search */}
-          <div className="relative shrink-0 w-52">
-            <svg viewBox="0 0 24 24" fill="none" className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-            <input
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              placeholder="Filter by location…"
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          {/* Genre pills */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5 flex-1">
-            {GENRE_OPTIONS.map((g) => (
-              <button
-                key={g}
-                onClick={() => setSelectedGenre(g)}
-                className={`shrink-0 px-3 py-1 rounded-full border text-[11px] font-semibold transition-all ${
-                  selectedGenre === g
-                    ? "bg-amber-500 border-amber-500 text-background"
-                    : g === "All"
-                    ? "border-border text-muted-foreground hover:border-amber-500/30 hover:text-foreground bg-card"
-                    : `border ${genreColor(g)} hover:opacity-80`
-                }`}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-
-          {/* Event count badge */}
-          {!isLoading && (
-            <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-              {events.length} event{events.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Map — fills all remaining viewport height */}
-      <div className="flex-1 min-h-0 p-3">
-        {isLoading ? (
-          <div className="h-full flex items-center justify-center rounded-2xl border border-border bg-card">
-            <div className="text-center text-muted-foreground">
-              <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm">Loading events…</p>
-            </div>
+      <section className="fan-map-area flex-1 min-h-0 flex flex-col">
+        {!mapReady ? (
+          <div className="fan-map-loading h-full flex items-center justify-center">
+            <div className="fan-map-refresh-shimmer fan-map-refresh-shimmer--solo" aria-hidden />
           </div>
         ) : error ? (
-          <div className="h-full flex items-center justify-center rounded-2xl border border-border bg-card">
+          <div className="fan-map-loading h-full flex items-center justify-center">
             <div className="text-center text-muted-foreground">
               <span className="text-4xl mb-3 block">⚠️</span>
               <p className="font-medium text-sm">Could not load events</p>
@@ -107,12 +150,23 @@ export default function FanHome() {
           </div>
         ) : (
           <MapView
-            events={events}
+            header={toolbar}
+            mapEvents={allEvents}
+            sidebarEvents={eventsInRadius}
             selectedEventId={selectedEventId}
             onSelectEvent={handleSelectEvent}
+            onSidebarCountChange={setSidebarCount}
+            viewCenter={[mapCenter.lat, mapCenter.lng]}
+            radiusKm={radiusKm}
+            mapExplored={mapExplored}
+            onMapExplored={() => setMapExplored(true)}
+            onReturnToView={handleReturnToView}
+            refitToken={refitToken}
+            isRefreshing={isRefreshing}
+            viewZoom={DEFAULT_MAP_ZOOM}
           />
         )}
-      </div>
+      </section>
     </div>
   );
 }

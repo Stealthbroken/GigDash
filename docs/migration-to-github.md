@@ -1,5 +1,7 @@
 # GigDash Migration Guide: From Replit to Team GitHub Development
 
+> **New:** For day-to-day teamwork, prettier VS Code docs, and vibe coding, start at **[docs/README.md](./README.md)** — especially [GitHub Collaboration](./github-collaboration.md) and [Getting Started](./getting-started.md). This file keeps the original step-by-step migration checklist.
+
 ## Overview
 
 This guide covers everything you need to move GigDash from solo development on Replit to team-based collaborative work on GitHub. It assumes most team members are new to Git/GitHub.

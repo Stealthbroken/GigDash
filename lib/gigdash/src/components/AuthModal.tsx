@@ -24,7 +24,7 @@ function validatePassword(pw: string): string | null {
 
 export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "fan" }: AuthModalProps) {
   const [, navigate] = useLocation();
-  const { setUser } = useAuth();
+  const { refreshUser } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState("");
@@ -94,12 +94,23 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
         return;
       }
 
-      setUser(data);
+      const sessionUser = await refreshUser();
+      if (!sessionUser) {
+        setServerError(
+          "Signed in, but the session cookie was not saved. Keep using the app through the Vite dev URL (not the API port directly), and make sure cookies are allowed for localhost.",
+        );
+        return;
+      }
 
       if (mode === "signup") {
         navigate(`/onboarding?role=${role}`);
       } else {
-        const dest = data.role === "fan" ? "/fan" : "/";
+        const dest =
+          sessionUser.role === "fan"
+            ? "/fan"
+            : sessionUser.role === "venue"
+              ? "/venue"
+              : "/";
         navigate(dest);
       }
     } catch {

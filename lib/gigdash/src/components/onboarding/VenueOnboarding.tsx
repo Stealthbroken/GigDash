@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
+import type { GeoPlace } from "@workspace/api-client-react";
+import LocationSearch from "@/components/LocationSearch";
 import StepIndicator from "./StepIndicator";
 import CustomTagInput from "./CustomTagInput";
 
@@ -42,7 +44,8 @@ export default function VenueOnboarding() {
   const [step, setStep] = useState(0);
 
   const [venueName, setVenueName] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressInput, setAddressInput] = useState("");
+  const [addressPlace, setAddressPlace] = useState<GeoPlace | null>(null);
   const [description, setDescription] = useState("");
   const [size, setSize] = useState("");
   const [moods, setMoods] = useState<string[]>([]);
@@ -56,15 +59,22 @@ export default function VenueOnboarding() {
   function back() { setStep((s) => s - 1); }
 
   async function finish() {
+    if (!addressPlace) {
+      setError("Pick your venue address from the suggestions list.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const res = await fetch("/api/venues/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: venueName,
-          address,
+          address: addressPlace.label,
+          lat: addressPlace.lat,
+          lng: addressPlace.lng,
           description: description || undefined,
           size: size || undefined,
           moods,
@@ -115,19 +125,20 @@ export default function VenueOnboarding() {
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">Address</label>
-            <div className="relative">
-              <svg viewBox="0 0 24 24" fill="none" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              <input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="123 Main St, City, Province"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">Used to show your venue on the map for fans and artists nearby.</p>
+            <LocationSearch
+              value={addressInput}
+              onChange={setAddressInput}
+              selectedPlace={addressPlace}
+              onPlaceSelect={setAddressPlace}
+              onClear={() => setAddressPlace(null)}
+              placeholder="Street address, city, or postal code…"
+              aria-label="Venue address"
+              accent="violet"
+              inputClassName="rounded-lg border-input bg-card py-2.5 text-sm focus:ring-ring"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Pick a suggestion so your venue appears on the map at the right spot.
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">
@@ -146,7 +157,7 @@ export default function VenueOnboarding() {
           </div>
           <button
             onClick={next}
-            disabled={!venueName.trim() || !address.trim()}
+            disabled={!venueName.trim() || !addressPlace}
             className="mt-2 w-full py-2.5 bg-violet-500 hover:bg-violet-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-lg text-sm transition-colors"
           >
             Continue

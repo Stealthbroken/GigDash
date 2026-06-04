@@ -7,18 +7,27 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const rawPort = process.env.FRONTEND_PORT ?? process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    "FRONTEND_PORT or PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
+/** Frontend dev server port. `PORT` fallback supports Replit (frontend service sets PORT). */
+const rawFrontendPort = process.env.FRONTEND_PORT ?? process.env.PORT ?? "5173";
+const port = Number(rawFrontendPort);
 
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  throw new Error(`Invalid frontend port value: "${rawFrontendPort}"`);
+}
+
+/** API port for dev proxy (API server). Not the same as the Vite `PORT` on Replit. */
+const rawApiPort = process.env.API_PORT ?? "5000";
+const apiPort = Number(rawApiPort);
+
+if (Number.isNaN(apiPort) || apiPort <= 0) {
+  throw new Error(`Invalid API port value: "${rawApiPort}"`);
+}
+
+if (port === apiPort) {
+  throw new Error(
+    `Frontend port (${port}) and API port (${apiPort}) must be different. ` +
+      `Set FRONTEND_PORT and API_PORT in .env (e.g. 5173 and 5000).`,
+  );
 }
 
 const basePath = process.env.BASE_PATH;
@@ -71,8 +80,10 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
+        cookieDomainRewrite: "",
+        cookiePathRewrite: "/",
       },
     },
   },

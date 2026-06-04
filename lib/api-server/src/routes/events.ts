@@ -1,12 +1,14 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, sql } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import { db, eventsTable, venuesTable, eventArtistsTable, artistsTable } from "@workspace/db";
 import { ListEventsResponse, GetEventResponse } from "@workspace/api-zod";
+import { distanceKm, isValidCoordinates } from "../lib/geocode";
 
 const router: IRouter = Router();
 
 router.get("/events", async (req, res): Promise<void> => {
-  const { genre, location, limit = "20", offset = "0" } = req.query as Record<string, string>;
+  const { genre, location, nearLat, nearLng, radiusKm, limit = "20", offset = "0" } =
+    req.query as Record<string, string>;
 
   const lim = Math.min(parseInt(limit, 10) || 20, 100);
   const off = parseInt(offset, 10) || 0;
@@ -37,15 +39,28 @@ router.get("/events", async (req, res): Promise<void> => {
     .$dynamic();
 
   if (location) {
-    query = query.where(ilike(venuesTable.address, `%${location}%`));
+    const pattern = `%${location}%`;
+    query = query.where(
+      or(ilike(venuesTable.address, pattern), ilike(venuesTable.name, pattern)),
+    );
   }
 
   const rows = await query.limit(lim).offset(off);
+
+  const centerLat = nearLat != null ? Number(nearLat) : NaN;
+  const centerLng = nearLng != null ? Number(nearLng) : NaN;
+  const radius = Math.min(Math.max(Number(radiusKm) || 10, 1), 10);
+  const useProximity = isValidCoordinates(centerLat, centerLng);
 
   const events = rows
     .filter((r) => {
       if (!genre) return true;
       return r.genres.some((g: string) => g.toLowerCase().includes(genre.toLowerCase()));
+    })
+    .filter((r) => {
+      if (!useProximity) return true;
+      if (r.venueLat == null || r.venueLng == null) return false;
+      return distanceKm(centerLat, centerLng, r.venueLat, r.venueLng) <= radius;
     })
     .map((r) => ({
       id: r.id,
@@ -65,8 +80,8 @@ router.get("/events", async (req, res): Promise<void> => {
         size: r.venueSize,
         moods: r.venueMoods,
         imageUrls: r.venueImageUrls,
-        lat: r.venueLat,
-        lng: r.venueLng,
+        lat: r.venueLat != null ? Number(r.venueLat) : null,
+        lng: r.venueLng != null ? Number(r.venueLng) : null,
       },
     }));
 
@@ -143,8 +158,8 @@ router.get("/events/:id", async (req, res): Promise<void> => {
         size: row.venueSize,
         moods: row.venueMoods,
         imageUrls: row.venueImageUrls,
-        lat: row.venueLat,
-        lng: row.venueLng,
+        lat: row.venueLat != null ? Number(row.venueLat) : null,
+        lng: row.venueLng != null ? Number(row.venueLng) : null,
       },
       artists: artistRows,
     }),
