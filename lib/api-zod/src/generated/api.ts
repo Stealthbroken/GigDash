@@ -50,7 +50,11 @@ export const LoginResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "email": zod.string(),
-  "role": zod.string()
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
 })
 
 
@@ -61,7 +65,142 @@ export const GetMeResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "email": zod.string(),
-  "role": zod.string()
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
+})
+
+
+/**
+ * @summary Get account settings
+ */
+export const GetAccountSettingsResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "usernameChangedAt": zod.coerce.date().nullish(),
+  "canChangeUsername": zod.boolean(),
+  "nextUsernameChangeAt": zod.coerce.date().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
+})
+
+
+/**
+ * @summary Change username (30-day cooldown)
+ */
+export const changeUsernameBodyUsernameMin = 2;
+export const changeUsernameBodyUsernameMax = 20;
+
+
+
+export const ChangeUsernameBody = zod.object({
+  "username": zod.string().min(changeUsernameBodyUsernameMin).max(changeUsernameBodyUsernameMax)
+})
+
+export const ChangeUsernameResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "usernameChangedAt": zod.coerce.date().nullish(),
+  "canChangeUsername": zod.boolean(),
+  "nextUsernameChangeAt": zod.coerce.date().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
+})
+
+
+/**
+ * @summary Change password
+ */
+export const changePasswordBodyNewPasswordMin = 8;
+
+
+
+export const ChangePasswordBody = zod.object({
+  "currentPassword": zod.string(),
+  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin)
+})
+
+export const ChangePasswordResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * @summary Update profile picture
+ */
+export const ChangeAvatarBody = zod.object({
+  "avatarUrl": zod.string().nullish()
+})
+
+export const ChangeAvatarResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
+})
+
+
+/**
+ * @summary Set home location (geocoded)
+ */
+export const changeLocationBodyQueryMin = 0;
+export const changeLocationBodyQueryMax = 120;
+
+
+
+export const ChangeLocationBody = zod.object({
+  "query": zod.string().min(changeLocationBodyQueryMin).max(changeLocationBodyQueryMax).optional(),
+  "locationLabel": zod.string().optional(),
+  "lat": zod.number().optional(),
+  "lng": zod.number().optional()
+})
+
+export const ChangeLocationResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "usernameChangedAt": zod.coerce.date().nullish(),
+  "canChangeUsername": zod.boolean(),
+  "nextUsernameChangeAt": zod.coerce.date().nullish(),
+  "locationLabel": zod.string().nullish(),
+  "locationLat": zod.number().nullish(),
+  "locationLng": zod.number().nullish()
+})
+
+
+/**
+ * @summary Search for real cities, towns, or postal codes
+ */
+export const searchGeoPlacesQueryQMin = 2;
+
+
+
+export const SearchGeoPlacesQueryParams = zod.object({
+  "q": zod.coerce.string().min(searchGeoPlacesQueryQMin)
+})
+
+export const SearchGeoPlacesResponse = zod.object({
+  "places": zod.array(zod.object({
+  "label": zod.string(),
+  "lat": zod.number(),
+  "lng": zod.number()
+}))
 })
 
 
@@ -70,7 +209,10 @@ export const GetMeResponse = zod.object({
  */
 export const ListEventsQueryParams = zod.object({
   "genre": zod.coerce.string().optional(),
-  "location": zod.coerce.string().optional(),
+  "location": zod.coerce.string().optional().describe('Filter by venue name or address substring'),
+  "nearLat": zod.coerce.number().optional().describe('Center latitude for proximity filter'),
+  "nearLng": zod.coerce.number().optional().describe('Center longitude for proximity filter'),
+  "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 75, max 200)'),
   "artistName": zod.coerce.string().optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
@@ -216,6 +358,8 @@ export const updateVenueMeBodyNameMax = 60;
 export const UpdateVenueMeBody = zod.object({
   "name": zod.string().min(1).max(updateVenueMeBodyNameMax),
   "address": zod.string().min(1),
+  "lat": zod.coerce.number().optional(),
+  "lng": zod.coerce.number().optional(),
   "description": zod.string().optional(),
   "size": zod.string().optional(),
   "moods": zod.array(zod.string())

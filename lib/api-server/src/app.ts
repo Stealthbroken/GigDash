@@ -7,6 +7,9 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Vite/Replit proxies forward requests — needed for correct secure cookies in production
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
@@ -43,6 +46,8 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),

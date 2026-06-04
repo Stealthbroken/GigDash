@@ -6,18 +6,27 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountSettings';
 export * from './apiError';
 export * from './artistOnboardingInput';
 export * from './artistProfile';
 export * from './artistSummary';
+export * from './changeAvatarInput';
+export * from './changeLocationInput';
+export * from './changePasswordInput';
+export * from './changeUsernameInput';
 export * from './eventDetail';
 export * from './eventList';
 export * from './eventSummary';
 export * from './fanOnboardingInput';
 export * from './fanProfile';
+export * from './geoPlace';
+export * from './geoPlaceList';
 export * from './healthStatus';
 export * from './listEventsParams';
 export * from './loginInput';
+export * from './passwordChangeResult';
+export * from './searchGeoPlacesParams';
 export * from './signupInput';
 export * from './userSession';
 export * from './venue';

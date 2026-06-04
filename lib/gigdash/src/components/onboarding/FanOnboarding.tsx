@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import StepIndicator from "./StepIndicator";
 import CustomTagInput from "./CustomTagInput";
 import AvatarUpload from "./AvatarUpload";
+import LocationSearch from "@/components/LocationSearch";
+import type { GeoPlace } from "@workspace/api-client-react";
 
 const GENRES = ["Rock", "Pop", "Jazz", "Hip-Hop", "Electronic", "Folk", "Classical", "R&B", "Country", "Metal"];
 const STEPS = ["Profile", "Your Taste"];
@@ -33,7 +35,8 @@ export default function FanOnboarding() {
 
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [location, setLocation] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+  const [homePlace, setHomePlace] = useState<GeoPlace | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
@@ -49,13 +52,37 @@ export default function FanOnboarding() {
       const res = await fetch("/api/fans/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName, avatarUrl: avatarUrl || undefined, location: location || undefined, genres }),
+        body: JSON.stringify({
+          displayName,
+          avatarUrl: avatarUrl || undefined,
+          location: homePlace?.label ?? (locationInput.trim() || undefined),
+          genres,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError((data as { error?: string }).error ?? "Something went wrong. Please try again.");
         return;
       }
+
+      if (homePlace) {
+        const locRes = await fetch("/api/auth/settings/location", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            locationLabel: homePlace.label,
+            lat: homePlace.lat,
+            lng: homePlace.lng,
+          }),
+        });
+        if (!locRes.ok) {
+          const data = await locRes.json().catch(() => ({}));
+          setError((data as { error?: string }).error ?? "Could not save your location.");
+          return;
+        }
+      }
+
       navigate("/fan");
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -90,20 +117,21 @@ export default function FanOnboarding() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">Your City / Location</label>
-            <div className="relative">
-              <svg viewBox="0 0 24 24" fill="none" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Toronto, ON M5V 3A8"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">Used to show events near you. Never shown publicly.</p>
+            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">
+              Your City / Location
+            </label>
+            <LocationSearch
+              value={locationInput}
+              onChange={setLocationInput}
+              selectedPlace={homePlace}
+              onPlaceSelect={setHomePlace}
+              onClear={() => setHomePlace(null)}
+              placeholder="e.g. Toronto, ON or M5V 2T6"
+              inputClassName="border-input bg-card py-2.5 text-sm"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Pick a suggestion so we can show real events near you.
+            </p>
           </div>
 
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">

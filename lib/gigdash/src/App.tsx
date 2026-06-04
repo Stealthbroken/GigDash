@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,6 +9,8 @@ import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import FanHome from "@/pages/FanHome";
+import Settings from "@/pages/Settings";
+import VenueDashboard from "@/pages/VenueDashboard";
 import VenueProfile from "@/pages/VenueProfile";
 
 const queryClient = new QueryClient();
@@ -16,12 +19,30 @@ function ProtectedRoute({ component: Component }: { component: () => JSX.Element
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
-  if (loading) return null;
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [loading, user, navigate]);
 
-  if (!user) {
-    navigate("/login");
-    return null;
-  }
+  if (loading || !user) return null;
+
+  return <Component />;
+}
+
+function VenueRoute({ component: Component }: { component: () => JSX.Element }) {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    } else if (!loading && user && user.role !== "venue") {
+      navigate("/");
+    }
+  }, [loading, user, navigate]);
+
+  if (loading || !user || user.role !== "venue") return null;
 
   return <Component />;
 }
@@ -35,6 +56,12 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/fan">
         {() => <ProtectedRoute component={FanHome} />}
+      </Route>
+      <Route path="/settings">
+        {() => <ProtectedRoute component={Settings} />}
+      </Route>
+      <Route path="/venue">
+        {() => <VenueRoute component={VenueDashboard} />}
       </Route>
       <Route path="/venue/:id" component={VenueProfile} />
       <Route component={NotFound} />

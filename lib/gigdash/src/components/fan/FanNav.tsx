@@ -1,7 +1,13 @@
 import { useLocation } from "wouter";
+import { Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function FanNav() {
+interface FanNavProps {
+  active?: "discover";
+}
+
+export default function FanNav({ active }: FanNavProps) {
   const [, navigate] = useLocation();
   const { user, setUser } = useAuth();
 
@@ -12,33 +18,45 @@ export default function FanNav() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <header className="fan-nav shrink-0">
+      <div className="fan-nav-inner">
         <button
-          onClick={() => navigate("/")}
-          className="font-serif font-bold text-xl text-amber-400 tracking-tight"
+          type="button"
+          onClick={() => navigate("/fan")}
+          className="fan-nav-logo font-serif font-bold text-lg tracking-tight"
         >
           GigDash
         </button>
 
-        <nav className="flex items-center gap-1">
-          <button
-            onClick={() => navigate("/fan")}
-            className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-secondary"
-          >
+        {active === "discover" && (
+          <span className="fan-nav-pill hidden sm:inline-flex" aria-current="page">
             Discover
-          </button>
-        </nav>
+          </span>
+        )}
 
-        <div className="flex items-center gap-3">
+        <div className="fan-nav-actions">
           {user && (
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              Hi, <span className="text-foreground font-medium">{user.username}</span>
-            </span>
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              className="fan-nav-settings"
+              title="Account settings"
+              aria-label="Account settings"
+            >
+              <Avatar className="h-7 w-7 border border-border/80">
+                <AvatarImage src={user.avatarUrl ?? undefined} alt="" />
+                <AvatarFallback className="text-[10px] font-semibold bg-secondary">
+                  {user.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="fan-nav-username hidden md:inline">{user.username}</span>
+              <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
+            </button>
           )}
           <button
+            type="button"
             onClick={handleLogout}
-            className="px-3.5 py-1.5 text-sm font-medium border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="fan-nav-signout"
           >
             Sign out
           </button>

@@ -8,7 +8,22 @@
 
 export type ListEventsParams = {
 genre?: string;
+/**
+ * Filter by venue name or address substring
+ */
 location?: string;
+/**
+ * Center latitude for proximity filter
+ */
+nearLat?: number;
+/**
+ * Center longitude for proximity filter
+ */
+nearLng?: number;
+/**
+ * Radius in km (default 75, max 200)
+ */
+radiusKm?: number;
 artistName?: string;
 limit?: number;
 offset?: number;

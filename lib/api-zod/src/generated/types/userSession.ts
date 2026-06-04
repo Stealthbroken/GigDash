@@ -11,4 +11,12 @@ export interface UserSession {
   username: string;
   email: string;
   role: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  locationLabel?: string | null;
+  /** @nullable */
+  locationLat?: number | null;
+  /** @nullable */
+  locationLng?: number | null;
 }
