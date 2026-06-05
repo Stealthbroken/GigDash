@@ -223,8 +223,13 @@ export const ListEventsResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
   "genres": zod.array(zod.string()).optional(),
   "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().nullish(),
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
@@ -246,6 +251,34 @@ export const ListEventsResponse = zod.object({
 
 
 /**
+ * @summary Create a new event (venue only)
+ */
+export const createEventBodyTitleMax = 100;
+
+export const createEventBodyIsPaidDefault = false;
+export const createEventBodyIsCompetitionDefault = false;
+export const createEventBodyCompetitionLevelMax = 5;
+
+export const createEventBodyDurationMinutesMin = 15;
+
+
+
+export const CreateEventBody = zod.object({
+  "title": zod.string().max(createEventBodyTitleMax).describe('Short event title'),
+  "description": zod.string().nullish().describe('Event description for fans (200 words or less)'),
+  "artistRequirements": zod.string().nullish().describe('What kind of artist the host is looking for (200 words or less)'),
+  "imageUrls": zod.array(zod.string()).optional().describe('Subset of venue\'s uploaded photos to feature for this event'),
+  "genres": zod.array(zod.string()).optional().describe('Music genres for the event (from VENUE_GENRES list)'),
+  "isPaid": zod.boolean().default(createEventBodyIsPaidDefault),
+  "payAmount": zod.string().nullish().describe('e.g. \"$150\" or \"tips only\"'),
+  "isCompetition": zod.boolean().default(createEventBodyIsCompetitionDefault),
+  "competitionLevel": zod.number().min(1).max(createEventBodyCompetitionLevelMax).nullish().describe('1-5 only if isCompetition true'),
+  "eventDate": zod.coerce.date().describe('Start date and time of event'),
+  "durationMinutes": zod.number().min(createEventBodyDurationMinutesMin).nullish().describe('Length of the slot in minutes')
+})
+
+
+/**
  * @summary Get event by ID
  */
 export const GetEventParams = zod.object({
@@ -256,8 +289,13 @@ export const GetEventResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
   "genres": zod.array(zod.string()).optional(),
   "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().nullish(),
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),

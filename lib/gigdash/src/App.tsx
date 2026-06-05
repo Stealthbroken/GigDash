@@ -13,7 +13,9 @@ import FanProfile from "@/pages/FanProfile";
 import FanChat from "@/pages/FanChat";
 import Settings from "@/pages/Settings";
 import VenueDashboard from "@/pages/VenueDashboard";
+import VenueCreateEvent from "@/pages/VenueCreateEvent";
 import VenueProfile from "@/pages/VenueProfile";
+import ArtistHome from "@/pages/ArtistHome";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,23 @@ function VenueRoute({ component: Component }: { component: () => JSX.Element }) 
   return <Component />;
 }
 
+function ArtistRoute({ component: Component }: { component: () => JSX.Element }) {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    } else if (!loading && user && user.role !== "artist") {
+      navigate("/");
+    }
+  }, [loading, user, navigate]);
+
+  if (loading || !user || user.role !== "artist") return null;
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -68,11 +87,17 @@ function Router() {
       <Route path="/fan">
         {() => <ProtectedRoute component={FanHome} />}
       </Route>
+      <Route path="/artist">
+        {() => <ArtistRoute component={ArtistHome} />}
+      </Route>
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
       </Route>
       <Route path="/venue">
         {() => <VenueRoute component={VenueDashboard} />}
+      </Route>
+      <Route path="/venue/create-event">
+        {() => <VenueRoute component={VenueCreateEvent} />}
       </Route>
       <Route path="/venue/:id" component={VenueProfile} />
       <Route component={NotFound} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getDemoAccounts, saveDemoAccount } from "@/contexts/AuthContext";
 
 const ROLES = [
   { id: "artist", label: "Artist", description: "I perform music and want to find gigs" },
@@ -24,7 +24,7 @@ function validatePassword(pw: string): string | null {
 
 export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "fan" }: AuthModalProps) {
   const [, navigate] = useLocation();
-  const { refreshUser } = useAuth();
+  const { refreshUser, setUser } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState("");
@@ -110,11 +110,55 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
             ? "/fan"
             : sessionUser.role === "venue"
               ? "/venue"
-              : "/";
+              : sessionUser.role === "artist"
+                ? "/artist"
+                : "/";
         navigate(dest);
       }
     } catch {
-      setServerError("Could not connect to server. Please try again.");
+      // TEMPORARY MOCK for local testing without backend/DB server.
+      // ONLY signup creates accounts. Login only works for pre-existing accounts (from signup).
+      // No auto-created default accounts. You must create via signup to access artist features.
+      // Data is fake and only lives in this browser (localStorage). Clear by logging out or clearing site data.
+      const effectiveRole = mode === "login" && !role ? "artist" : role; // default to artist for easy testing
+      const emailKey = email || (username ? `${username}@test.local` : `artist-${Date.now()}@test.local`);
+
+      const accounts = getDemoAccounts();
+      const existing = accounts[emailKey];
+
+      if (mode === "login") {
+        if (!existing) {
+          setServerError("Account not found for this email. Please sign up first to create a new account.");
+          setLoading(false);
+          return;
+        }
+        // Restore full previous details (username, displayName/stage name, spotify, youtube, etc.)
+        const fakeUser = { ...existing, role: effectiveRole };
+        setUser(fakeUser);
+        saveDemoAccount(emailKey, fakeUser);
+
+        console.log('%c[Demo Mode] Restored previous demo account.', 'color:#f59e0b');
+
+        const dest =
+          effectiveRole === "fan" ? "/fan" : effectiveRole === "venue" ? "/venue" : effectiveRole === "artist" ? "/artist" : "/";
+        navigate(dest);
+      } else {
+        // Signup always creates (or updates) the account
+        const base = existing || {
+          id: Date.now(),
+          username: username || (email && email.split('@')[0]) || "",
+          email: emailKey,
+          role: effectiveRole,
+          avatarUrl: null,
+        };
+        const fakeUser = { ...base, role: effectiveRole };
+        setUser(fakeUser);
+        saveDemoAccount(emailKey, fakeUser);
+
+        console.log('%c[Demo Mode] Created demo account via signup. Login later with the same email to restore it.', 'color:#f59e0b');
+
+        navigate(`/onboarding?role=${effectiveRole}`);
+      }
     } finally {
       setLoading(false);
     }

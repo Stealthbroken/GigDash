@@ -136,13 +136,65 @@ export interface ArtistSummary {
   bio?: string | null;
 }
 
+export interface CreateEventInput {
+  /**
+     * Short event title
+     * @maxLength 100
+     */
+  title: string;
+  /**
+     * Event description for fans (200 words or less)
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * What kind of artist the host is looking for (200 words or less)
+     * @nullable
+     */
+  artistRequirements?: string | null;
+  /** Subset of venue's uploaded photos to feature for this event */
+  imageUrls?: string[];
+  /** Music genres for the event (from VENUE_GENRES list) */
+  genres?: string[];
+  isPaid?: boolean;
+  /**
+     * e.g. "$150" or "tips only"
+     * @nullable
+     */
+  payAmount?: string | null;
+  isCompetition?: boolean;
+  /**
+     * 1-5 only if isCompetition true
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  competitionLevel?: number | null;
+  /** Start date and time of event */
+  eventDate: string;
+  /**
+     * Length of the slot in minutes
+     * @minimum 15
+     * @nullable
+     */
+  durationMinutes?: number | null;
+}
+
 export interface EventSummary {
   id: number;
   title: string;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  artistRequirements?: string | null;
+  imageUrls?: string[];
   genres?: string[];
   isPaid?: boolean;
+  /** @nullable */
+  payAmount?: string | null;
+  isCompetition?: boolean;
+  /** @nullable */
+  competitionLevel?: number | null;
   eventDate: string;
   /** @nullable */
   durationMinutes?: number | null;
@@ -156,8 +208,16 @@ export interface EventDetail {
   title: string;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  artistRequirements?: string | null;
+  imageUrls?: string[];
   genres?: string[];
   isPaid?: boolean;
+  /** @nullable */
+  payAmount?: string | null;
+  isCompetition?: boolean;
+  /** @nullable */
+  competitionLevel?: number | null;
   eventDate: string;
   /** @nullable */
   durationMinutes?: number | null;

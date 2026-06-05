@@ -55,4 +55,12 @@ app.use(
 
 app.use("/api", router);
 
+// Global error handler - ensures DB and other errors are logged with full details
+app.use((err: any, req: any, res: any, _next: any) => {
+  req.log?.error?.({ err }, "Unhandled route error");
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default app;

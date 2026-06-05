@@ -28,6 +28,7 @@ import type {
   ChangeLocationInput,
   ChangePasswordInput,
   ChangeUsernameInput,
+  CreateEventInput,
   EventDetail,
   EventList,
   FanOnboardingInput,
@@ -952,6 +953,77 @@ export function useListEvents<TData = Awaited<ReturnType<typeof listEvents>>, TE
 
 
 
+
+export const getCreateEventUrl = () => {
+
+
+
+
+  return `/api/events`
+}
+
+/**
+ * @summary Create a new event (venue only)
+ */
+export const createEvent = async (createEventInput: CreateEventInput, options?: RequestInit): Promise<EventDetail> => {
+
+  return customFetch<EventDetail>(getCreateEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createEventInput,)
+  }
+);}
+
+
+
+
+export const getCreateEventMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext> => {
+
+const mutationKey = ['createEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEvent>>, {data: BodyType<CreateEventInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEventMutationResult = NonNullable<Awaited<ReturnType<typeof createEvent>>>
+    export type CreateEventMutationBody = BodyType<CreateEventInput>
+    export type CreateEventMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create a new event (venue only)
+ */
+export const useCreateEvent = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEvent>>,
+        TError,
+        {data: BodyType<CreateEventInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEventMutationOptions(options));
+    }
 
 export const getGetEventUrl = (id: number,) => {
 

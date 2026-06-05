@@ -12,7 +12,9 @@ export default function FanNav({ active }: FanNavProps) {
   const { user, setUser } = useAuth();
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
     setUser(null);
     navigate("/");
   }
@@ -27,6 +29,9 @@ export default function FanNav({ active }: FanNavProps) {
         >
           GigDash
         </button>
+        {user && user.email && user.email.endsWith('@test.local') && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 ml-2">DEMO</span>
+        )}
 
         {active === "discover" && (
           <span className="fan-nav-pill hidden sm:inline-flex" aria-current="page">

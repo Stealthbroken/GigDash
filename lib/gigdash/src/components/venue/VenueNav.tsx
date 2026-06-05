@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Settings } from "lucide-react";
+import { Settings, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -8,7 +8,9 @@ export default function VenueNav() {
   const { user, setUser } = useAuth();
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
     setUser(null);
     navigate("/");
   }
@@ -23,6 +25,9 @@ export default function VenueNav() {
         >
           GigDash
         </button>
+        {user && user.email && user.email.endsWith('@test.local') && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 ml-2">DEMO</span>
+        )}
         <span className="venue-nav-pill hidden sm:inline-flex">Venue dashboard</span>
         <div className="venue-nav-actions">
           {user && (
@@ -43,6 +48,15 @@ export default function VenueNav() {
               <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => navigate("/venue/create-event")}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            aria-label="Create new event"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create event</span>
+          </button>
           <button type="button" onClick={handleLogout} className="venue-nav-signout">
             Sign out
           </button>

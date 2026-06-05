@@ -33,11 +33,18 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
 
-  const existing = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(or(eq(usersTable.username, username), eq(usersTable.email, email)))
-    .limit(1);
+  let existing;
+  try {
+    existing = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(or(eq(usersTable.username, username), eq(usersTable.email, email)))
+      .limit(1);
+  } catch (err) {
+    req.log.error({ err }, "DB error during signup duplicate check");
+    res.status(500).json({ error: "Database error. Please try again later." });
+    return;
+  }
 
   if (existing.length > 0) {
     res.status(409).json({ error: "Username or email is already taken." });
@@ -47,10 +54,17 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const passwordHash = await bcrypt.hash(passwordStr, 10);
   const roleVal = (role === "artist" || role === "venue" || role === "fan") ? role : "fan";
 
-  const [user] = await db
-    .insert(usersTable)
-    .values({ username, email, passwordHash, role: roleVal })
-    .returning();
+  let user;
+  try {
+    [user] = await db
+      .insert(usersTable)
+      .values({ username, email, passwordHash, role: roleVal })
+      .returning();
+  } catch (err) {
+    req.log.error({ err }, "DB error during user insert (signup)");
+    res.status(500).json({ error: "Database error. Please try again later." });
+    return;
+  }
 
   if (roleVal === "fan") {
     await db.insert(fansTable).values({
@@ -102,11 +116,18 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   const { email, password } = parsed.data;
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.email, email))
-    .limit(1);
+  let user;
+  try {
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+  } catch (err) {
+    req.log.error({ err, email }, "DB error during login lookup");
+    res.status(500).json({ error: "Database error. Please try again later." });
+    return;
+  }
 
   if (!user) {
     res.status(401).json({ error: "Invalid email or password." });
@@ -150,11 +171,18 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId as number))
-    .limit(1);
+  let user;
+  try {
+    [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId as number))
+      .limit(1);
+  } catch (err) {
+    req.log.error({ err }, "DB error during /me lookup");
+    res.status(500).json({ error: "Database error. Please try again later." });
+    return;
+  }
 
   if (!user) {
     res.status(401).json({ error: "Not authenticated." });

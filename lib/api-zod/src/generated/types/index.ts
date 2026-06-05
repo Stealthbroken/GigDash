@@ -15,6 +15,7 @@ export * from './changeAvatarInput';
 export * from './changeLocationInput';
 export * from './changePasswordInput';
 export * from './changeUsernameInput';
+export * from './createEventInput';
 export * from './eventDetail';
 export * from './eventList';
 export * from './eventSummary';

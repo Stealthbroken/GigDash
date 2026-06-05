@@ -355,6 +355,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventList"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a new event (venue only)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not a venue account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /events/{id}:
     get:
@@ -820,6 +857,53 @@ components:
         bio:
           type: ["string", "null"]
 
+    CreateEventInput:
+      type: object
+      required: [title, eventDate]
+      properties:
+        title:
+          type: string
+          maxLength: 100
+          description: Short event title
+        description:
+          type: ["string", "null"]
+          description: Event description for fans (200 words or less)
+        artistRequirements:
+          type: ["string", "null"]
+          description: What kind of artist the host is looking for (200 words or less)
+        imageUrls:
+          type: array
+          items:
+            type: string
+          description: Subset of venue's uploaded photos to feature for this event
+        genres:
+          type: array
+          items:
+            type: string
+          description: Music genres for the event (from VENUE_GENRES list)
+        isPaid:
+          type: boolean
+          default: false
+        payAmount:
+          type: ["string", "null"]
+          description: e.g. "$150" or "tips only"
+        isCompetition:
+          type: boolean
+          default: false
+        competitionLevel:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+          description: 1-5 only if isCompetition true
+        eventDate:
+          type: string
+          format: date-time
+          description: Start date and time of event
+        durationMinutes:
+          type: ["integer", "null"]
+          minimum: 15
+          description: Length of the slot in minutes
+
     EventSummary:
       type: object
       required: [id, title, eventDate, venue]
@@ -830,12 +914,24 @@ components:
           type: string
         description:
           type: ["string", "null"]
+        artistRequirements:
+          type: ["string", "null"]
+        imageUrls:
+          type: array
+          items:
+            type: string
         genres:
           type: array
           items:
             type: string
         isPaid:
           type: boolean
+        payAmount:
+          type: ["string", "null"]
+        isCompetition:
+          type: boolean
+        competitionLevel:
+          type: ["integer", "null"]
         eventDate:
           type: string
           format: date-time
@@ -858,12 +954,24 @@ components:
           type: string
         description:
           type: ["string", "null"]
+        artistRequirements:
+          type: ["string", "null"]
+        imageUrls:
+          type: array
+          items:
+            type: string
         genres:
           type: array
           items:
             type: string
         isPaid:
           type: boolean
+        payAmount:
+          type: ["string", "null"]
+        isCompetition:
+          type: boolean
+        competitionLevel:
+          type: ["integer", "null"]
         eventDate:
           type: string
           format: date-time
@@ -998,6 +1106,11 @@ components:
           items:
             type: string
 
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
     FollowedArtistRecentGig:
       type: object
       required: [eventId, title, venueName, venueAddress, eventDate, status]
