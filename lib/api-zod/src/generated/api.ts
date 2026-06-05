@@ -321,6 +321,17 @@ export const GetEventResponse = zod.object({
 
 
 /**
+ * @summary Get current fan profile
+ */
+export const GetFanMeResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "location": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
  * @summary Update current fan profile
  */
 export const updateFanMeBodyDisplayNameMax = 40;
@@ -339,6 +350,27 @@ export const UpdateFanMeResponse = zod.object({
   "displayName": zod.string(),
   "location": zod.string().nullish(),
   "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary List artists the current fan follows
+ */
+export const ListFollowedArtistsResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "recentGig": zod.union([zod.object({
+  "eventId": zod.number(),
+  "title": zod.string(),
+  "venueName": zod.string(),
+  "venueAddress": zod.string(),
+  "eventDate": zod.coerce.date(),
+  "status": zod.string()
+}),zod.null()]).optional()
+}))
 })
 
 

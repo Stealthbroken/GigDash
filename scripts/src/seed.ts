@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 // Load .env from workspace root before any @workspace/* imports that need env vars
 config({ path: path.resolve(__dirname, "../../.env") });
 
-const { db, usersTable, artistsTable, venuesTable, fansTable, eventsTable, eventArtistsTable } = await import("@workspace/db");
+const { db, usersTable, artistsTable, venuesTable, fansTable, fanFollowsTable, eventsTable, eventArtistsTable } = await import("@workspace/db");
 const { default: bcrypt } = await import("bcryptjs");
 
 async function seed() {
@@ -42,7 +42,7 @@ async function seed() {
   const [v4] = await db.insert(venuesTable).values({ userId: uv4.id, name: "The Danforth Music Hall", address: "147 Danforth Ave, Toronto, ON", description: "Historic theatre turned concert venue with a grand stage and excellent acoustics.", size: "lg", moods: ["Concert Hall", "High-energy", "All-ages"], imageUrls: ["https://images.unsplash.com/photo-1508854710579-5cecc3a9ff17?w=800&q=80", "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80"], lat: 43.6763, lng: -79.3560 }).returning();
   const [v5] = await db.insert(venuesTable).values({ userId: uv5.id, name: "Mod Club Theatre", address: "722 College St, Toronto, ON", description: "Intimate live music venue with a dance floor and a packed calendar.", size: "md", moods: ["Club", "High-energy", "18+"], imageUrls: ["https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=800&q=80", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80"], lat: 43.6547, lng: -79.4113 }).returning();
 
-  await db.insert(fansTable).values({ userId: uf1.id, displayName: "Alex M", location: "Toronto, ON", genres: ["Jazz", "Folk", "Pop"] });
+  const [f1] = await db.insert(fansTable).values({ userId: uf1.id, displayName: "Alex M", location: "Toronto, ON", genres: ["Jazz", "Folk", "Pop"] }).returning();
 
   const now = new Date();
   const day = (n: number) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000);
@@ -60,6 +60,23 @@ async function seed() {
   const [e8] = await db.insert(eventsTable).values({ venueId: v3.id, title: "Late Night Soul Lounge", description: "Seeking an R&B or soul duo for an intimate late-night set.", genres: ["R&B", "Soul"], isPaid: true, payAmount: "$200", eventDate: day(18), durationMinutes: 120, status: "upcoming" }).returning();
   const [e9] = await db.insert(eventsTable).values({ venueId: v4.id, title: "Classical Evening", description: "Looking for a classical quartet or chamber ensemble for an elegant evening.", genres: ["Classical"], isPaid: true, payAmount: "$500", eventDate: day(21), durationMinutes: 150, status: "upcoming" }).returning();
   const [e10] = await db.insert(eventsTable).values({ venueId: v5.id, title: "Hip-Hop Showcase", description: "Searching for up-and-coming hip-hop acts for a weekly showcase.", genres: ["Hip-Hop"], isPaid: false, eventDate: day(6), durationMinutes: 180, status: "upcoming" }).returning();
+
+  // Completed gigs (for followed-artist recent gig info)
+  const [ec1] = await db.insert(eventsTable).values({ venueId: v1.id, title: "Winter Jazz Showcase", description: "A sold-out evening of classic and modern jazz.", genres: ["Jazz"], isPaid: false, eventDate: day(-21), durationMinutes: 120, status: "completed" }).returning();
+  const [ec2] = await db.insert(eventsTable).values({ venueId: v2.id, title: "Indie River Acoustic Night", description: "An intimate rooftop acoustic set.", genres: ["Folk", "Pop"], isPaid: true, payAmount: "$18", eventDate: day(-14), durationMinutes: 90, status: "completed" }).returning();
+  const [ec3] = await db.insert(eventsTable).values({ venueId: v5.id, title: "Electro Park Live", description: "Club night featuring ambient house and live visuals.", genres: ["Electronic"], isPaid: true, payAmount: "$15", eventDate: day(-7), durationMinutes: 150, status: "completed" }).returning();
+
+  await db.insert(eventArtistsTable).values([
+    { eventId: ec1.id, artistId: a1.id, bio: "Headline jazz set." },
+    { eventId: ec2.id, artistId: a2.id, bio: "Solo acoustic performance." },
+    { eventId: ec3.id, artistId: a5.id, bio: "Full electronic live set." },
+  ]);
+
+  await db.insert(fanFollowsTable).values([
+    { fanId: f1.id, artistId: a1.id },
+    { fanId: f1.id, artistId: a2.id },
+    { fanId: f1.id, artistId: a5.id },
+  ]);
 
   // Link artists to FINALIZED events only
   await db.insert(eventArtistsTable).values([

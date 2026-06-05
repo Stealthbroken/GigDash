@@ -41,22 +41,32 @@ export default function FanNav({ active }: FanNavProps) {
 
         <div className="fan-nav-actions">
           {user && (
-            <button
-              type="button"
-              onClick={() => navigate("/settings")}
-              className="fan-nav-settings"
-              title="Account settings"
-              aria-label="Account settings"
-            >
-              <Avatar className="h-7 w-7 border border-border/80">
-                <AvatarImage src={user.avatarUrl ?? undefined} alt="" />
-                <AvatarFallback className="text-[10px] font-semibold bg-secondary">
-                  {user.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="fan-nav-username hidden md:inline">{user.username}</span>
-              <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => navigate("/fan/profile")}
+                className="fan-nav-settings"
+                title="Your profile"
+                aria-label="Your profile"
+              >
+                <Avatar className="h-7 w-7 border border-border/80">
+                  <AvatarImage src={user.avatarUrl ?? undefined} alt="" />
+                  <AvatarFallback className="text-[10px] font-semibold bg-secondary">
+                    {user.username.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="fan-nav-username hidden md:inline">{user.username}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/settings")}
+                className="fan-nav-settings p-1.5"
+                title="Account settings"
+                aria-label="Account settings"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </button>
+            </>
           )}
           <button
             type="button"

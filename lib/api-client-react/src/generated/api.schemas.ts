@@ -298,6 +298,28 @@ export interface FanProfile {
   genres?: string[];
 }
 
+export interface FollowedArtistRecentGig {
+  eventId: number;
+  title: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: string;
+  status: string;
+}
+
+export interface FollowedArtistSummary {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  genres?: string[];
+  recentGig?: FollowedArtistRecentGig | null;
+}
+
+export interface FollowedArtistList {
+  artists: FollowedArtistSummary[];
+}
+
 export type SearchGeoPlacesParams = {
 /**
  * @minLength 2
