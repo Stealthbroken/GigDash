@@ -203,7 +203,10 @@ export interface VenueOnboardingInput {
      * @maxLength 60
      */
   name: string;
-  /** @minLength 1 */
+  /**
+     * Full address label from geocoding suggestion
+     * @minLength 1
+     */
   address: string;
   /** WGS84 latitude from geocoding suggestion */
   lat: number;
@@ -235,6 +238,28 @@ export interface FanProfile {
   genres?: string[];
 }
 
+export interface FollowedArtistRecentGig {
+  eventId: number;
+  title: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: string;
+  status: string;
+}
+
+export interface FollowedArtistSummary {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  genres?: string[];
+  recentGig?: FollowedArtistRecentGig | null;
+}
+
+export interface FollowedArtistList {
+  artists: FollowedArtistSummary[];
+}
+
 export type SearchGeoPlacesParams = {
 /**
  * @minLength 2
@@ -257,7 +282,7 @@ nearLat?: number;
  */
 nearLng?: number;
 /**
- * Radius in km (default 75, max 200)
+ * Radius in km (default 10, min 1, max 10)
  */
 radiusKm?: number;
 artistName?: string;

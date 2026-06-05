@@ -9,6 +9,8 @@ import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import FanHome from "@/pages/FanHome";
+import FanProfile from "@/pages/FanProfile";
+import FanChat from "@/pages/FanChat";
 import Settings from "@/pages/Settings";
 import VenueDashboard from "@/pages/VenueDashboard";
 import VenueProfile from "@/pages/VenueProfile";
@@ -54,6 +56,15 @@ function Router() {
       <Route path="/login" component={Auth} />
       <Route path="/signup" component={Auth} />
       <Route path="/onboarding" component={Onboarding} />
+      <Route path="/fan/profile">
+        {() => <ProtectedRoute component={FanProfile} />}
+      </Route>
+      <Route path="/fan/chat/:artistId">
+        {() => <ProtectedRoute component={FanChat} />}
+      </Route>
+      <Route path="/fan/chat">
+        {() => <ProtectedRoute component={FanChat} />}
+      </Route>
       <Route path="/fan">
         {() => <ProtectedRoute component={FanHome} />}
       </Route>

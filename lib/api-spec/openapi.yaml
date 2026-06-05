@@ -382,6 +382,29 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 
   /fans/me:
+    get:
+      operationId: getFanMe
+      tags: [fans]
+      summary: Get current fan profile
+      responses:
+        "200":
+          description: Fan profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FanProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     patch:
       operationId: updateFanMe
       tags: [fans]
@@ -413,6 +436,31 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "404":
           description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /fans/me/followed-artists:
+    get:
+      operationId: listFollowedArtists
+      tags: [fans]
+      summary: List artists the current fan follows
+      responses:
+        "200":
+          description: Followed artists with recent gig info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowedArtistList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Fan profile not found
           content:
             application/json:
               schema:
@@ -949,4 +997,50 @@ components:
           type: array
           items:
             type: string
+
+    FollowedArtistRecentGig:
+      type: object
+      required: [eventId, title, venueName, venueAddress, eventDate, status]
+      properties:
+        eventId:
+          type: integer
+        title:
+          type: string
+        venueName:
+          type: string
+        venueAddress:
+          type: string
+        eventDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    FollowedArtistSummary:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        recentGig:
+          oneOf:
+            - $ref: "#/components/schemas/FollowedArtistRecentGig"
+            - type: "null"
+
+    FollowedArtistList:
+      type: object
+      required: [artists]
+      properties:
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowedArtistSummary"
 

@@ -212,7 +212,7 @@ export const ListEventsQueryParams = zod.object({
   "location": zod.coerce.string().optional().describe('Filter by venue name or address substring'),
   "nearLat": zod.coerce.number().optional().describe('Center latitude for proximity filter'),
   "nearLng": zod.coerce.number().optional().describe('Center longitude for proximity filter'),
-  "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 75, max 200)'),
+  "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 10, min 1, max 10)'),
   "artistName": zod.coerce.string().optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
@@ -283,6 +283,17 @@ export const GetEventResponse = zod.object({
 
 
 /**
+ * @summary Get current fan profile
+ */
+export const GetFanMeResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "location": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
  * @summary Update current fan profile
  */
 export const updateFanMeBodyDisplayNameMax = 40;
@@ -301,6 +312,27 @@ export const UpdateFanMeResponse = zod.object({
   "displayName": zod.string(),
   "location": zod.string().nullish(),
   "genres": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary List artists the current fan follows
+ */
+export const ListFollowedArtistsResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "recentGig": zod.union([zod.object({
+  "eventId": zod.number(),
+  "title": zod.string(),
+  "venueName": zod.string(),
+  "venueAddress": zod.string(),
+  "eventDate": zod.coerce.date(),
+  "status": zod.string()
+}),zod.null()]).optional()
+}))
 })
 
 
@@ -348,6 +380,22 @@ export const UpdateArtistMeResponse = zod.object({
 
 
 /**
+ * @summary Get current venue profile
+ */
+export const GetVenueMeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "moods": zod.array(zod.string()).optional(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+})
+
+
+/**
  * @summary Update current venue profile
  */
 export const updateVenueMeBodyNameMax = 60;
@@ -357,9 +405,9 @@ export const updateVenueMeBodyNameMax = 60;
 
 export const UpdateVenueMeBody = zod.object({
   "name": zod.string().min(1).max(updateVenueMeBodyNameMax),
-  "address": zod.string().min(1),
-  "lat": zod.coerce.number().optional(),
-  "lng": zod.coerce.number().optional(),
+  "address": zod.string().min(1).describe('Full address label from geocoding suggestion'),
+  "lat": zod.number().describe('WGS84 latitude from geocoding suggestion'),
+  "lng": zod.number().describe('WGS84 longitude from geocoding suggestion'),
   "description": zod.string().optional(),
   "size": zod.string().optional(),
   "moods": zod.array(zod.string())

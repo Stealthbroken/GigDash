@@ -32,6 +32,7 @@ import type {
   EventList,
   FanOnboardingInput,
   FanProfile,
+  FollowedArtistList,
   GeoPlaceList,
   HealthStatus,
   ListEventsParams,
@@ -1029,6 +1030,83 @@ export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError
 
 
 
+export const getGetFanMeUrl = () => {
+
+
+
+
+  return `/api/fans/me`
+}
+
+/**
+ * @summary Get current fan profile
+ */
+export const getFanMe = async ( options?: RequestInit): Promise<FanProfile> => {
+
+  return customFetch<FanProfile>(getGetFanMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFanMeQueryKey = () => {
+    return [
+    `/api/fans/me`
+    ] as const;
+    }
+
+
+export const getGetFanMeQueryOptions = <TData = Awaited<ReturnType<typeof getFanMe>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFanMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFanMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFanMe>>> = ({ signal }) => getFanMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFanMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFanMeQueryResult = NonNullable<Awaited<ReturnType<typeof getFanMe>>>
+export type GetFanMeQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get current fan profile
+ */
+
+export function useGetFanMe<TData = Awaited<ReturnType<typeof getFanMe>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFanMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFanMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getUpdateFanMeUrl = () => {
 
 
@@ -1099,6 +1177,83 @@ export const useUpdateFanMe = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getUpdateFanMeMutationOptions(options));
     }
+
+export const getListFollowedArtistsUrl = () => {
+
+
+
+
+  return `/api/fans/me/followed-artists`
+}
+
+/**
+ * @summary List artists the current fan follows
+ */
+export const listFollowedArtists = async ( options?: RequestInit): Promise<FollowedArtistList> => {
+
+  return customFetch<FollowedArtistList>(getListFollowedArtistsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFollowedArtistsQueryKey = () => {
+    return [
+    `/api/fans/me/followed-artists`
+    ] as const;
+    }
+
+
+export const getListFollowedArtistsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowedArtistsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowedArtists>>> = ({ signal }) => listFollowedArtists({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFollowedArtistsQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowedArtists>>>
+export type ListFollowedArtistsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List artists the current fan follows
+ */
+
+export function useListFollowedArtists<TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFollowedArtistsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetFanUrl = (id: number,) => {
 
@@ -1247,6 +1402,83 @@ export const useUpdateArtistMe = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getUpdateArtistMeMutationOptions(options));
     }
+
+export const getGetVenueMeUrl = () => {
+
+
+
+
+  return `/api/venues/me`
+}
+
+/**
+ * @summary Get current venue profile
+ */
+export const getVenueMe = async ( options?: RequestInit): Promise<Venue> => {
+
+  return customFetch<Venue>(getGetVenueMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVenueMeQueryKey = () => {
+    return [
+    `/api/venues/me`
+    ] as const;
+    }
+
+
+export const getGetVenueMeQueryOptions = <TData = Awaited<ReturnType<typeof getVenueMe>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVenueMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVenueMe>>> = ({ signal }) => getVenueMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVenueMeQueryResult = NonNullable<Awaited<ReturnType<typeof getVenueMe>>>
+export type GetVenueMeQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get current venue profile
+ */
+
+export function useGetVenueMe<TData = Awaited<ReturnType<typeof getVenueMe>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVenueMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getUpdateVenueMeUrl = () => {
 

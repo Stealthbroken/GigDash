@@ -12,8 +12,15 @@ export interface VenueOnboardingInput {
      * @maxLength 60
      */
   name: string;
-  /** @minLength 1 */
+  /**
+     * Full address label from geocoding suggestion
+     * @minLength 1
+     */
   address: string;
+  /** WGS84 latitude from geocoding suggestion */
+  lat: number;
+  /** WGS84 longitude from geocoding suggestion */
+  lng: number;
   description?: string;
   size?: string;
   moods: string[];
