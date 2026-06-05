@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useAuth, getDemoAccounts, saveDemoAccount } from "@/contexts/AuthContext";
 import StepIndicator from "./StepIndicator";
 import CustomTagInput from "./CustomTagInput";
 import AvatarUpload from "./AvatarUpload";
@@ -31,6 +32,7 @@ function TagButton({ label, selected, onClick }: { label: string; selected: bool
 
 export default function ArtistOnboarding() {
   const [, navigate] = useLocation();
+  const { user, setUser } = useAuth();
   const [step, setStep] = useState(0);
 
   const [displayName, setDisplayName] = useState("");
@@ -43,6 +45,23 @@ export default function ArtistOnboarding() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefill from saved demo profile (so re-login or edit shows previous stage name, spotify, youtube etc.)
+  useEffect(() => {
+    if (user?.email) {
+      const accounts = getDemoAccounts();
+      const saved = accounts[user.email];
+      if (saved) {
+        if (saved.displayName) setDisplayName(saved.displayName);
+        if (saved.avatarUrl) setAvatarUrl(saved.avatarUrl);
+        if (saved.bio) setBio(saved.bio);
+        if (Array.isArray(saved.genres)) setGenres(saved.genres);
+        if (Array.isArray(saved.vibes)) setVibes(saved.vibes);
+        if (saved.spotifyUrl) setSpotify(saved.spotifyUrl);
+        if (saved.youtubeUrl) setYoutube(saved.youtubeUrl);
+      }
+    }
+  }, [user?.email]);
 
   function next() { setStep((s) => s + 1); }
   function back() { setStep((s) => s - 1); }
@@ -66,12 +85,48 @@ export default function ArtistOnboarding() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        // for mock mode without real backend, just continue
+        if (!data || Object.keys(data).length === 0) {
+          // also save in this mock path
+          if (user?.email) {
+            const profileData = {
+              displayName,
+              avatarUrl: avatarUrl || undefined,
+              bio: bio || undefined,
+              genres,
+              vibes,
+              spotifyUrl: spotify || undefined,
+              youtubeUrl: youtube || undefined,
+            };
+            saveDemoAccount(user.email, profileData);
+            const updated = { ...user, ...profileData };
+            setUser(updated);
+          }
+          navigate("/artist");
+          return;
+        }
         setError((data as { error?: string }).error ?? "Something went wrong. Please try again.");
         return;
       }
-      navigate("/");
+      navigate("/artist");
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      // TEMP MOCK: when no real server, save profile to demo storage so it persists on re-login
+      if (user?.email) {
+        const profileData = {
+          displayName,
+          avatarUrl: avatarUrl || undefined,
+          bio: bio || undefined,
+          genres,
+          vibes,
+          spotifyUrl: spotify || undefined,
+          youtubeUrl: youtube || undefined,
+        };
+        saveDemoAccount(user.email, profileData);
+        // update current user object too (for nav etc to show stage name immediately)
+        const updated = { ...user, ...profileData };
+        setUser(updated);
+      }
+      navigate("/artist");
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,8 @@ const COLORS = {
   finalized: "#10b981",
 } as const;
 
+export const VENUE_MARKER_COLOR = "#f59e0b"; // amber for artist venue search markers
+
 function svgDataUri(svg: string): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.trim())}`;
 }
@@ -69,6 +71,34 @@ export function createMultiEventMarkerIcon(count: number, popupOpen: boolean): L
       iconAnchor: [size / 2, size / 2],
       popupAnchor: [0, -(size / 2 + 4)],
       className: "gigdash-marker-icon gigdash-marker-icon--cluster",
+    });
+  });
+}
+
+/** Venue marker for artist search (amber pin with music/building symbol) */
+export function createVenueMarkerIcon(isSelected = false): L.Icon {
+  const fill = VENUE_MARKER_COLOR;
+  const ring = isSelected ? "#fefce8" : "#ffffff";
+  const ringWidth = isSelected ? 3 : 2.5;
+  const w = 32;
+  const h = 40;
+  const key = `venue-${isSelected ? "sel" : "norm"}`;
+
+  return getCachedIcon(key, () => {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 32 40">
+        <path d="M16 1C8 1 1.5 7.5 1.5 16c0 9.5 14.5 22 14.5 22s14.5-12.5 14.5-22C30.5 7.5 24 1 16 1z"
+          fill="${fill}" stroke="${ring}" stroke-width="${ringWidth}"/>
+        <circle cx="16" cy="15" r="4.5" fill="#ffffff" />
+        <path d="M13 15v6.5c0 1.1.9 2 2 2s2-.9 2-2V15" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    `;
+    return L.icon({
+      iconUrl: svgDataUri(svg),
+      iconSize: [w, h],
+      iconAnchor: [w / 2, h],
+      popupAnchor: [0, -h + 3],
+      className: "gigdash-marker-icon gigdash-venue-marker",
     });
   });
 }
