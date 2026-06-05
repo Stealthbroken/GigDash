@@ -29,7 +29,7 @@ export default function FanNav({ active }: FanNavProps) {
         >
           GigDash
         </button>
-        {localStorage.getItem('mockUser') && (
+        {user && user.email && user.email.endsWith('@test.local') && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 ml-2">DEMO</span>
         )}
 

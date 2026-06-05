@@ -30,7 +30,7 @@ export default function ArtistNav({ active }: ArtistNavProps) {
           GigDash <span className="artist-nav-role">for artists</span>
         </button>
         {/* Demo indicator - only appears in temporary local mock mode */}
-        {localStorage.getItem('mockUser') && (
+        {user && user.email && user.email.endsWith('@test.local') && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-2">DEMO</span>
         )}
 
@@ -57,10 +57,10 @@ export default function ArtistNav({ active }: ArtistNavProps) {
               <Avatar className="h-7 w-7 border border-border/80">
                 <AvatarImage src={user.avatarUrl ?? undefined} alt="" />
                 <AvatarFallback className="text-[10px] font-semibold bg-secondary">
-                  {user.username.slice(0, 2).toUpperCase()}
+                  {(user.displayName || user.username).slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="artist-nav-username hidden md:inline">{user.username}</span>
+              <span className="artist-nav-username hidden md:inline">{user.displayName || user.username}</span>
               <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
             </button>
           )}

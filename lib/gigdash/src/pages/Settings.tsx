@@ -12,8 +12,9 @@ import type { GeoPlace } from "@workspace/api-client-react";
 import LocationSearch from "@/components/LocationSearch";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getDemoAccounts, saveDemoAccount } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import CustomTagInput from "@/components/onboarding/CustomTagInput";
 
 const MAX_AVATAR_BYTES = 400_000;
 
@@ -39,6 +40,29 @@ function formatCooldownDate(value: Date | string | null | undefined): string {
   return d.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" });
 }
 
+const GENRES = ["Rock", "Pop", "Jazz", "Hip-Hop", "Electronic", "Folk", "Classical", "R&B", "Country", "Metal"];
+const VIBES = ["Energetic", "Chill", "Acoustic", "Experimental", "Traditional", "Interactive", "Background", "Headliner-ready"];
+
+function toggle<T>(arr: T[], item: T): T[] {
+  return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
+}
+
+function TagButton({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
+        selected
+          ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
+          : "bg-background border-border text-muted-foreground hover:border-amber-500/30 hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function Settings() {
   const [, navigate] = useLocation();
   const { user, refreshUser } = useAuth();
@@ -48,6 +72,18 @@ export default function Settings() {
 
   const { data: settings, isLoading } = useGetAccountSettings();
 
+  const isDemoMode = !!user && !!user.email && user.email.endsWith('@test.local');
+  const effectiveSettings = isDemoMode ? {
+    username: user?.username || '',
+    avatarUrl: user?.avatarUrl ?? null,
+    locationLabel: null,
+    locationLat: null,
+    locationLng: null,
+    canChangeUsername: true,
+    nextUsernameChangeAt: null,
+    email: user?.email || '',
+  } : settings;
+
   const [username, setUsername] = useState("");
   const [locationInput, setLocationInput] = useState("");
   const [homePlace, setHomePlace] = useState<GeoPlace | null>(null);
@@ -56,15 +92,20 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Artist profile for demo/edit
+  const [bio, setBio] = useState("");
+  const [genres, setGenres] = useState<string[]>([]);
+  const [vibes, setVibes] = useState<string[]>([]);
+
   useEffect(() => {
-    if (settings) {
-      setUsername(settings.username);
-      setAvatarPreview(settings.avatarUrl ?? null);
-      if (settings.locationLabel && settings.locationLat != null && settings.locationLng != null) {
+    if (effectiveSettings) {
+      setUsername(effectiveSettings.username || '');
+      setAvatarPreview(effectiveSettings.avatarUrl ?? null);
+      if (effectiveSettings.locationLabel && effectiveSettings.locationLat != null && effectiveSettings.locationLng != null) {
         const place = {
-          label: settings.locationLabel,
-          lat: settings.locationLat,
-          lng: settings.locationLng,
+          label: effectiveSettings.locationLabel,
+          lat: effectiveSettings.locationLat,
+          lng: effectiveSettings.locationLng,
         };
         setHomePlace(place);
         setLocationInput(place.label);
@@ -73,7 +114,14 @@ export default function Settings() {
         setLocationInput("");
       }
     }
-  }, [settings]);
+    if (isDemoMode && user?.email) {
+      const accounts = getDemoAccounts();
+      const prof = accounts[user.email] || {};
+      setBio(prof.bio || '');
+      setGenres(Array.isArray(prof.genres) ? prof.genres : []);
+      setVibes(Array.isArray(prof.vibes) ? prof.vibes : []);
+    }
+  }, [effectiveSettings, isDemoMode, user]);
 
   const usernameMutation = useChangeUsername({
     mutation: {
@@ -128,16 +176,35 @@ export default function Settings() {
     },
   });
 
-  const backPath = user?.role === "fan" ? "/fan" : "/";
+  const backPath =
+    user?.role === "fan" ? "/fan" :
+    user?.role === "artist" ? "/artist" :
+    "/";
 
   function handleUsernameSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!settings?.canChangeUsername) return;
+    if (isDemoMode) {
+      const newUsername = username.trim();
+      if (!newUsername) return;
+      const updatedUser = { ...user!, username: newUsername };
+      setUser(updatedUser as any);
+      if (user?.email) saveDemoAccount(user.email, { username: newUsername });
+      toast({ title: "Username updated (demo)" });
+      return;
+    }
+    if (!effectiveSettings?.canChangeUsername) return;
     usernameMutation.mutate({ data: { username: username.trim() } });
   }
 
   function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isDemoMode) {
+      toast({ title: "Password change (demo only, not persisted)" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      return;
+    }
     const pwErr = validatePassword(newPassword);
     if (pwErr) {
       toast({ title: "Invalid password", description: pwErr, variant: "destructive" });
@@ -151,6 +218,21 @@ export default function Settings() {
   }
 
   function handleAvatarFile(file: File) {
+    if (isDemoMode) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          setAvatarPreview(result);
+          const updated = { ...user!, avatarUrl: result };
+          setUser(updated as any);
+          if (user?.email) saveDemoAccount(user.email, { avatarUrl: result });
+          toast({ title: "Profile picture updated (demo)" });
+        }
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
     if (!file.type.startsWith("image/")) {
       toast({ title: "Please choose an image file", variant: "destructive" });
       return;
@@ -175,11 +257,24 @@ export default function Settings() {
   }
 
   function handleRemoveAvatar() {
+    if (isDemoMode) {
+      setAvatarPreview(null);
+      const updated = { ...user!, avatarUrl: null };
+      setUser(updated as any);
+      if (user?.email) saveDemoAccount(user.email, { avatarUrl: null });
+      toast({ title: "Profile picture removed (demo)" });
+      return;
+    }
     setAvatarPreview(null);
     avatarMutation.mutate({ data: { avatarUrl: null } });
   }
 
   function handleSaveLocation() {
+    if (isDemoMode) {
+      // for demo, optionally update local if wanted, but toast for now
+      toast({ title: "Location saved (demo)" });
+      return;
+    }
     if (homePlace) {
       locationMutation.mutate({
         data: {
@@ -200,16 +295,36 @@ export default function Settings() {
   function handleClearLocation() {
     setHomePlace(null);
     setLocationInput("");
+    if (isDemoMode) {
+      toast({ title: "Location cleared (demo)" });
+      return;
+    }
     locationMutation.mutate({ data: { query: "" } });
   }
 
-  const initials = (settings?.username ?? user?.username ?? "?").slice(0, 2).toUpperCase();
+  function handleArtistProfileSave() {
+    if (isDemoMode && user?.email) {
+      const profileData = {
+        bio: bio || undefined,
+        genres,
+        vibes,
+      };
+      saveDemoAccount(user.email, profileData);
+      const updatedUser = { ...user, ...profileData };
+      setUser(updatedUser as any);
+      toast({ title: "Artist profile updated (demo)" });
+      return;
+    }
+    toast({ title: "Artist profile editing requires backend", variant: "destructive" });
+  }
+
+  const initials = (effectiveSettings?.username ?? user?.username ?? "?").slice(0, 2).toUpperCase();
   const locationUnchanged =
     homePlace != null &&
-    settings?.locationLabel === homePlace.label &&
-    settings?.locationLat === homePlace.lat &&
-    settings?.locationLng === homePlace.lng;
-  const savingAvatar = avatarMutation.isPending;
+    effectiveSettings?.locationLabel === homePlace.label &&
+    effectiveSettings?.locationLat === homePlace.lat &&
+    effectiveSettings?.locationLng === homePlace.lng;
+  const savingAvatar = isDemoMode ? false : avatarMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -294,7 +409,7 @@ export default function Settings() {
                 onPlaceSelect={setHomePlace}
                 onClear={() => setHomePlace(null)}
                 placeholder="e.g. Toronto, ON or M5V 2T6"
-                disabled={locationMutation.isPending}
+                disabled={!isDemoMode && locationMutation.isPending}
                 inputClassName="bg-background border-border"
               />
               <div className="flex flex-wrap gap-2">
@@ -302,19 +417,19 @@ export default function Settings() {
                   type="button"
                   onClick={handleSaveLocation}
                   disabled={
-                    locationMutation.isPending ||
+                    !isDemoMode && (locationMutation.isPending ||
                     (!homePlace && locationInput.trim().length < 2) ||
-                    Boolean(homePlace && locationUnchanged)
+                    Boolean(homePlace && locationUnchanged))
                   }
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
                 >
                   {locationMutation.isPending ? "Saving…" : "Save location"}
                 </button>
-                {(homePlace || settings?.locationLabel) && (
+                {(homePlace || effectiveSettings?.locationLabel) && (
                   <button
                     type="button"
                     onClick={handleClearLocation}
-                    disabled={locationMutation.isPending}
+                    disabled={!isDemoMode && locationMutation.isPending}
                     className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
                   >
                     Clear
@@ -330,10 +445,10 @@ export default function Settings() {
                   2–20 characters. Letters, numbers, and underscores only.
                 </p>
               </div>
-              {!settings?.canChangeUsername && settings?.nextUsernameChangeAt && (
+              {!effectiveSettings?.canChangeUsername && effectiveSettings?.nextUsernameChangeAt && (
                 <p className="text-xs text-amber-400/90 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2">
                   You can change your username again on{" "}
-                  {formatCooldownDate(settings.nextUsernameChangeAt)} (30-day cooldown).
+                  {formatCooldownDate(effectiveSettings.nextUsernameChangeAt)} (30-day cooldown).
                 </p>
               )}
               <form onSubmit={handleUsernameSubmit} className="space-y-3">
@@ -341,16 +456,17 @@ export default function Settings() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  disabled={!settings?.canChangeUsername || usernameMutation.isPending}
+                  disabled={isDemoMode ? false : (!effectiveSettings?.canChangeUsername || usernameMutation.isPending)}
                   maxLength={20}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-60"
                 />
                 <button
                   type="submit"
                   disabled={
-                    !settings?.canChangeUsername ||
+                    isDemoMode ? false :
+                    (!effectiveSettings?.canChangeUsername ||
                     usernameMutation.isPending ||
-                    username.trim() === settings?.username
+                    username.trim() === effectiveSettings?.username)
                   }
                   className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors disabled:opacity-50"
                 >
@@ -359,13 +475,69 @@ export default function Settings() {
               </form>
             </section>
 
+            {(isDemoMode || user?.role === "artist") && (
+              <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div>
+                  <h2 className="font-semibold text-base">Artist Profile</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Edit your bio, tags (genres), and performance vibe. Add custom tags by typing and pressing add.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">Bio</label>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={3}
+                    placeholder="Tell venues about yourself and your music…"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-3">Performance Vibe</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {VIBES.map((v) => (
+                      <TagButton key={v} label={v} selected={vibes.includes(v)} onClick={() => setVibes(toggle(vibes, v))} />
+                    ))}
+                  </div>
+                  <CustomTagInput
+                    accent="amber"
+                    tags={vibes.filter((v) => !VIBES.includes(v))}
+                    onAdd={(tag) => setVibes((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                    onRemove={(tag) => setVibes((prev) => prev.filter((v) => v !== tag))}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-3">Tags (Genres)</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {GENRES.map((g) => (
+                      <TagButton key={g} label={g} selected={genres.includes(g)} onClick={() => setGenres(toggle(genres, g))} />
+                    ))}
+                  </div>
+                  <CustomTagInput
+                    accent="amber"
+                    tags={genres.filter((g) => !GENRES.includes(g))}
+                    onAdd={(tag) => setGenres((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+                    onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleArtistProfileSave}
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors"
+                >
+                  Save artist profile
+                </button>
+              </section>
+            )}
+
             <section className="rounded-xl border border-border bg-card p-6 space-y-4">
               <div>
                 <h2 className="font-semibold text-base">Email</h2>
                 <p className="text-xs text-muted-foreground mt-1">Your login email cannot be changed here.</p>
               </div>
               <p className="text-sm text-foreground/90 px-3 py-2 rounded-lg bg-secondary/50 border border-border">
-                {settings?.email}
+                {effectiveSettings?.email}
               </p>
             </section>
 

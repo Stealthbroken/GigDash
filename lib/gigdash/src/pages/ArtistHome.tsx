@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useGetAccountSettings } from "@workspace/api-client-react";
 import type { GeoPlace } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/AuthContext";
 import ArtistNav from "@/components/artist/ArtistNav";
 import ArtistMapToolbar from "@/components/artist/ArtistMapToolbar";
 import ArtistVenueMap, { type ArtistMapVenue } from "@/components/artist/ArtistVenueMap";
@@ -141,6 +142,7 @@ function formatMatchReason(score: number, dist: number, genres: string[], venueG
 export default function ArtistHome() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, artistMatching, setArtistMatchingPrefs } = useAuth();
 
   // Map / search state (mirrors fan pattern)
   const [radiusKm, setRadiusKm] = useState(DEFAULT_MAP_RADIUS_KM);
@@ -153,10 +155,6 @@ export default function ArtistHome() {
   const [selectedVenueId, setSelectedVenueId] = useState<number | null>(null);
   const defaultedFromSettings = useRef(false);
 
-  // Artist self-identification for recs (persisted lightly in localStorage for demo)
-  const [artistGenres, setArtistGenres] = useState<string[]>(["Jazz", "Folk"]);
-  const [artistCompLevel, setArtistCompLevel] = useState<number>(3); // Moderate default
-
   // DM state
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgVenue, setMsgVenue] = useState<VenueForMessage | null>(null);
@@ -168,37 +166,18 @@ export default function ArtistHome() {
   const { data: accountSettings } = useGetAccountSettings();
   const debouncedFilter = useDebouncedValue(venueFilter.trim().toLowerCase(), 200);
 
-  // Load saved artist prefs
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("artistMatchingPrefs");
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (Array.isArray(p.genres) && p.genres.length) setArtistGenres(p.genres);
-        if (typeof p.comp === "number") setArtistCompLevel(Math.min(5, Math.max(1, p.comp)));
-      }
-    } catch {}
-  }, []);
-
-  // Persist prefs
-  function savePrefs(genres: string[], comp: number) {
-    try {
-      localStorage.setItem("artistMatchingPrefs", JSON.stringify({ genres, comp }));
-    } catch {}
-  }
+  const artistGenres = artistMatching.genres;
+  const artistCompLevel = artistMatching.comp;
 
   function toggleGenre(g: string) {
-    setArtistGenres((prev) => {
-      const next = prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g];
-      const final = next.length ? next : [g]; // keep at least one
-      savePrefs(final, artistCompLevel);
-      return final;
-    });
+    const prev = artistGenres;
+    const next = prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g];
+    const final = next.length ? next : [g]; // keep at least one
+    setArtistMatchingPrefs({ genres: final, comp: artistCompLevel });
   }
 
   function setComp(level: number) {
-    setArtistCompLevel(level);
-    savePrefs(artistGenres, level);
+    setArtistMatchingPrefs({ genres: artistGenres, comp: level });
   }
 
   // Default map location from settings or Toronto

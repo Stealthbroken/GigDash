@@ -25,7 +25,7 @@ export default function VenueNav() {
         >
           GigDash
         </button>
-        {localStorage.getItem('mockUser') && (
+        {user && user.email && user.email.endsWith('@test.local') && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 ml-2">DEMO</span>
         )}
         <span className="venue-nav-pill hidden sm:inline-flex">Venue dashboard</span>
