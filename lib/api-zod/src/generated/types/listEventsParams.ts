@@ -21,7 +21,7 @@ nearLat?: number;
  */
 nearLng?: number;
 /**
- * Radius in km (default 75, max 200)
+ * Radius in km (default 10, min 1, max 10)
  */
 radiusKm?: number;
 artistName?: string;

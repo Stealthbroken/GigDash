@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Settings } from "lucide-react";
+import { Settings, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -48,6 +48,15 @@ export default function VenueNav() {
               <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => navigate("/venue/create-event")}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            aria-label="Create new event"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create event</span>
+          </button>
           <button type="button" onClick={handleLogout} className="venue-nav-signout">
             Sign out
           </button>

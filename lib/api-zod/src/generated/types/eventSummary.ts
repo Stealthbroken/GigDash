@@ -12,8 +12,16 @@ export interface EventSummary {
   title: string;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  artistRequirements?: string | null;
+  imageUrls?: string[];
   genres?: string[];
   isPaid?: boolean;
+  /** @nullable */
+  payAmount?: string | null;
+  isCompetition?: boolean;
+  /** @nullable */
+  competitionLevel?: number | null;
   eventDate: Date;
   /** @nullable */
   durationMinutes?: number | null;

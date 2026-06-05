@@ -28,6 +28,7 @@ import type {
   ChangeLocationInput,
   ChangePasswordInput,
   ChangeUsernameInput,
+  CreateEventInput,
   EventDetail,
   EventList,
   FanOnboardingInput,
@@ -952,6 +953,77 @@ export function useListEvents<TData = Awaited<ReturnType<typeof listEvents>>, TE
 
 
 
+export const getCreateEventUrl = () => {
+
+
+
+
+  return `/api/events`
+}
+
+/**
+ * @summary Create a new event (venue only)
+ */
+export const createEvent = async (createEventInput: CreateEventInput, options?: RequestInit): Promise<EventDetail> => {
+
+  return customFetch<EventDetail>(getCreateEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createEventInput,)
+  }
+);}
+
+
+
+
+export const getCreateEventMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext> => {
+
+const mutationKey = ['createEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEvent>>, {data: BodyType<CreateEventInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEventMutationResult = NonNullable<Awaited<ReturnType<typeof createEvent>>>
+    export type CreateEventMutationBody = BodyType<CreateEventInput>
+    export type CreateEventMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create a new event (venue only)
+ */
+export const useCreateEvent = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEvent>>, TError,{data: BodyType<CreateEventInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEvent>>,
+        TError,
+        {data: BodyType<CreateEventInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEventMutationOptions(options));
+    }
+
 export const getGetEventUrl = (id: number,) => {
 
 
@@ -1247,6 +1319,83 @@ export const useUpdateArtistMe = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getUpdateArtistMeMutationOptions(options));
     }
+
+export const getGetVenueMeUrl = () => {
+
+
+
+
+  return `/api/venues/me`
+}
+
+/**
+ * @summary Get current venue profile
+ */
+export const getVenueMe = async ( options?: RequestInit): Promise<Venue> => {
+
+  return customFetch<Venue>(getGetVenueMeUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVenueMeQueryKey = () => {
+    return [
+    `/api/venues/me`
+    ] as const;
+    }
+
+
+export const getGetVenueMeQueryOptions = <TData = Awaited<ReturnType<typeof getVenueMe>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVenueMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVenueMe>>> = ({ signal }) => getVenueMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVenueMeQueryResult = NonNullable<Awaited<ReturnType<typeof getVenueMe>>>
+export type GetVenueMeQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get current venue profile
+ */
+
+export function useGetVenueMe<TData = Awaited<ReturnType<typeof getVenueMe>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueMe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVenueMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getUpdateVenueMeUrl = () => {
 

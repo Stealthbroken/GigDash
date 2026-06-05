@@ -51,4 +51,4 @@ export const COMPETITION_LEVELS = [
   { level: 5, label: "Competitive", description: "High demand, limited slots" },
 ] as const;
 
-export const DESCRIPTION_MAX_WORDS = 100;
+export const DESCRIPTION_MAX_WORDS = 200;

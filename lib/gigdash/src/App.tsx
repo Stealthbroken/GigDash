@@ -11,6 +11,7 @@ import Onboarding from "@/pages/Onboarding";
 import FanHome from "@/pages/FanHome";
 import Settings from "@/pages/Settings";
 import VenueDashboard from "@/pages/VenueDashboard";
+import VenueCreateEvent from "@/pages/VenueCreateEvent";
 import VenueProfile from "@/pages/VenueProfile";
 import ArtistHome from "@/pages/ArtistHome";
 
@@ -83,6 +84,9 @@ function Router() {
       </Route>
       <Route path="/venue">
         {() => <VenueRoute component={VenueDashboard} />}
+      </Route>
+      <Route path="/venue/create-event">
+        {() => <VenueRoute component={VenueCreateEvent} />}
       </Route>
       <Route path="/venue/:id" component={VenueProfile} />
       <Route component={NotFound} />

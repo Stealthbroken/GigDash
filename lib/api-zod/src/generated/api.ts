@@ -212,7 +212,7 @@ export const ListEventsQueryParams = zod.object({
   "location": zod.coerce.string().optional().describe('Filter by venue name or address substring'),
   "nearLat": zod.coerce.number().optional().describe('Center latitude for proximity filter'),
   "nearLng": zod.coerce.number().optional().describe('Center longitude for proximity filter'),
-  "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 75, max 200)'),
+  "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 10, min 1, max 10)'),
   "artistName": zod.coerce.string().optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
@@ -223,8 +223,13 @@ export const ListEventsResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
   "genres": zod.array(zod.string()).optional(),
   "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().nullish(),
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
@@ -246,6 +251,34 @@ export const ListEventsResponse = zod.object({
 
 
 /**
+ * @summary Create a new event (venue only)
+ */
+export const createEventBodyTitleMax = 100;
+
+export const createEventBodyIsPaidDefault = false;
+export const createEventBodyIsCompetitionDefault = false;
+export const createEventBodyCompetitionLevelMax = 5;
+
+export const createEventBodyDurationMinutesMin = 15;
+
+
+
+export const CreateEventBody = zod.object({
+  "title": zod.string().max(createEventBodyTitleMax).describe('Short event title'),
+  "description": zod.string().nullish().describe('Event description for fans (200 words or less)'),
+  "artistRequirements": zod.string().nullish().describe('What kind of artist the host is looking for (200 words or less)'),
+  "imageUrls": zod.array(zod.string()).optional().describe('Subset of venue\'s uploaded photos to feature for this event'),
+  "genres": zod.array(zod.string()).optional().describe('Music genres for the event (from VENUE_GENRES list)'),
+  "isPaid": zod.boolean().default(createEventBodyIsPaidDefault),
+  "payAmount": zod.string().nullish().describe('e.g. \"$150\" or \"tips only\"'),
+  "isCompetition": zod.boolean().default(createEventBodyIsCompetitionDefault),
+  "competitionLevel": zod.number().min(1).max(createEventBodyCompetitionLevelMax).nullish().describe('1-5 only if isCompetition true'),
+  "eventDate": zod.coerce.date().describe('Start date and time of event'),
+  "durationMinutes": zod.number().min(createEventBodyDurationMinutesMin).nullish().describe('Length of the slot in minutes')
+})
+
+
+/**
  * @summary Get event by ID
  */
 export const GetEventParams = zod.object({
@@ -256,8 +289,13 @@ export const GetEventResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
   "genres": zod.array(zod.string()).optional(),
   "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().nullish(),
   "eventDate": zod.coerce.date(),
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
@@ -348,6 +386,22 @@ export const UpdateArtistMeResponse = zod.object({
 
 
 /**
+ * @summary Get current venue profile
+ */
+export const GetVenueMeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "moods": zod.array(zod.string()).optional(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+})
+
+
+/**
  * @summary Update current venue profile
  */
 export const updateVenueMeBodyNameMax = 60;
@@ -357,9 +411,9 @@ export const updateVenueMeBodyNameMax = 60;
 
 export const UpdateVenueMeBody = zod.object({
   "name": zod.string().min(1).max(updateVenueMeBodyNameMax),
-  "address": zod.string().min(1),
-  "lat": zod.coerce.number().optional(),
-  "lng": zod.coerce.number().optional(),
+  "address": zod.string().min(1).describe('Full address label from geocoding suggestion'),
+  "lat": zod.number().describe('WGS84 latitude from geocoding suggestion'),
+  "lng": zod.number().describe('WGS84 longitude from geocoding suggestion'),
   "description": zod.string().optional(),
   "size": zod.string().optional(),
   "moods": zod.array(zod.string())
