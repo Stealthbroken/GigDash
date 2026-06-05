@@ -12,6 +12,7 @@ import FanHome from "@/pages/FanHome";
 import Settings from "@/pages/Settings";
 import VenueDashboard from "@/pages/VenueDashboard";
 import VenueProfile from "@/pages/VenueProfile";
+import ArtistHome from "@/pages/ArtistHome";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,23 @@ function VenueRoute({ component: Component }: { component: () => JSX.Element }) 
   return <Component />;
 }
 
+function ArtistRoute({ component: Component }: { component: () => JSX.Element }) {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    } else if (!loading && user && user.role !== "artist") {
+      navigate("/");
+    }
+  }, [loading, user, navigate]);
+
+  if (loading || !user || user.role !== "artist") return null;
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -56,6 +74,9 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/fan">
         {() => <ProtectedRoute component={FanHome} />}
+      </Route>
+      <Route path="/artist">
+        {() => <ArtistRoute component={ArtistHome} />}
       </Route>
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}

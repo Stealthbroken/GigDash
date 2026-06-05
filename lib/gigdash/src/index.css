@@ -1295,3 +1295,299 @@
     inset: -1px;
   }
 }
+
+/* =====================================================
+   ARTIST HOME — amber themed map + recs (similar to fan)
+   ===================================================== */
+
+.artist-nav {
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+  z-index: 50;
+}
+.artist-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.artist-nav-logo {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: hsl(45 93% 47%);
+}
+.artist-nav-role {
+  font-size: 10px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  margin-left: 4px;
+  opacity: 0.8;
+}
+.artist-nav-pill {
+  font-size: 11px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: hsl(45 93% 47% / 0.12);
+  color: hsl(45 93% 42%);
+  border: 1px solid hsl(45 93% 47% / 0.3);
+}
+.artist-nav-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.artist-nav-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  transition: all 0.1s;
+}
+.artist-nav-settings:hover {
+  background: hsl(var(--secondary));
+}
+.artist-nav-username {
+  font-weight: 500;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.artist-nav-signout {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+.artist-nav-signout:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--destructive) / 0.08);
+  border-color: hsl(var(--destructive) / 0.3);
+}
+
+.artist-map-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow: 0 1px 0 hsl(var(--border) / 0.4);
+}
+.artist-map-toolbar__primary {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.45rem 0.55rem;
+}
+@media (max-width: 720px) {
+  .artist-map-toolbar__primary {
+    grid-template-columns: 1fr;
+  }
+  .artist-map-toolbar__radius { grid-column: 1; }
+}
+.artist-map-toolbar__location {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.artist-map-toolbar__pin {
+  width: 15px;
+  height: 15px;
+  margin-top: 0.5rem;
+  color: hsl(45 93% 47%);
+}
+.artist-map-toolbar__search-input {
+  font-size: 0.75rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  border-radius: 10px;
+}
+.artist-map-toolbar__radius {
+  width: min(9rem, 100%);
+}
+.artist-map-toolbar__radius-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin-bottom: 1px;
+  color: hsl(var(--muted-foreground));
+}
+.artist-map-toolbar__radius-label { font-weight: 500; }
+.artist-map-toolbar__radius-value { font-variant-numeric: tabular-nums; color: hsl(45 80% 45%); }
+.artist-map-toolbar__count {
+  font-size: 11px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: hsl(45 93% 47% / 0.1);
+  color: hsl(45 80% 42%);
+  border: 1px solid hsl(45 93% 47% / 0.25);
+}
+.artist-map-toolbar__count-num { font-weight: 700; }
+.artist-map-toolbar__count-label { opacity: 0.75; font-size: 10px; }
+
+.artist-map-toolbar__secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.artist-map-toolbar__venue {
+  position: relative;
+  flex: 1 1 160px;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+}
+.artist-map-toolbar__venue-input {
+  width: 100%;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  padding: 0.25rem 1.6rem 0.25rem 1.6rem;
+  font-size: 11px;
+  height: 28px;
+}
+.artist-map-toolbar__venue-clear {
+  position: absolute;
+  right: 0.35rem;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+}
+.artist-map-toolbar__hint-inline {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground) / 0.9);
+  white-space: nowrap;
+}
+
+.artist-map-stage {
+  height: 100%;
+}
+.artist-map-column { min-width: 0; }
+.artist-map-shell {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  background: #0b0f14;
+}
+.artist-map-container { background: #0b0f14; }
+.artist-map-container--refreshing { opacity: 0.92; }
+
+.artist-return-view {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.artist-return-view:hover { background: hsl(var(--secondary)); }
+
+.artist-map-legend {
+  font-size: 11px;
+  background: hsl(var(--card) / 0.95);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border) / 0.7);
+}
+
+.artist-side-panel {
+  width: 310px;
+  max-width: 36vw;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.artist-side-panel-header {
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  background: hsl(var(--background) / 0.6);
+}
+.artist-side-panel-subtitle { color: hsl(var(--muted-foreground)); }
+
+.artist-venue-list-item {
+  background: hsl(var(--background));
+  border-color: hsl(var(--border));
+}
+.artist-venue-list-item:hover { border-color: hsl(45 80% 55% / 0.5); }
+.artist-venue-list-item--selected {
+  border-color: hsl(45 93% 47%);
+  box-shadow: 0 0 0 1px hsl(45 93% 47% / 0.25) inset;
+}
+
+.artist-map-refresh-overlay {
+  position: absolute; inset: 0; z-index: 450; pointer-events: none;
+  background: linear-gradient(180deg, transparent, hsl(var(--background) / 0.35));
+}
+.artist-map-refresh-shimmer {
+  position: absolute; top: 0; left: -40%; width: 25%; height: 100%;
+  background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
+  animation: artist-shimmer 1.1s infinite;
+}
+@keyframes artist-shimmer { 100% { transform: translateX(420%); } }
+
+.artist-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: hsl(45 60% 92% / 0.6);
+  color: hsl(40 70% 32%);
+  border: 1px solid hsl(45 70% 70% / 0.5);
+  white-space: nowrap;
+}
+
+/* Rec / full cards */
+.artist-venue-card {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  transition: transform 0.1s ease, box-shadow 0.1s;
+}
+.artist-venue-card:hover { box-shadow: 0 4px 14px -2px rgb(0 0 0 / 0.1); }
+.artist-venue-card--selected { border-color: hsl(45 93% 47% / 0.7); }
+
+.artist-venue-banner { position: relative; }
+.artist-venue-banner img { transition: transform 0.4s ease; }
+.artist-venue-card:hover .artist-venue-banner img { transform: scale(1.04); }
+
+.artist-venue-card--compact { padding: 0; }
+
+/* DM modal */
+.artist-dm-thread { font-size: 13px; }
+
+/* Map container tweaks for artist */
+.artist-map-shell .leaflet-popup-pane .leaflet-popup {
+  margin-bottom: 6px;
+}
+.artist-map-shell .leaflet-popup .leaflet-popup-content-wrapper {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+}
+.artist-map-shell .gigdash-venue-marker { filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35)); }
+
+/* Home layout */
+.artist-home { background: hsl(var(--background)); }
+

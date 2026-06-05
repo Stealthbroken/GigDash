@@ -3,11 +3,11 @@ import { Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface FanNavProps {
-  active?: "discover";
+interface ArtistNavProps {
+  active?: "discover" | "recs";
 }
 
-export default function FanNav({ active }: FanNavProps) {
+export default function ArtistNav({ active }: ArtistNavProps) {
   const [, navigate] = useLocation();
   const { user, setUser } = useAuth();
 
@@ -20,31 +20,37 @@ export default function FanNav({ active }: FanNavProps) {
   }
 
   return (
-    <header className="fan-nav shrink-0">
-      <div className="fan-nav-inner">
+    <header className="artist-nav shrink-0">
+      <div className="artist-nav-inner">
         <button
           type="button"
-          onClick={() => navigate("/fan")}
-          className="fan-nav-logo font-serif font-bold text-lg tracking-tight"
+          onClick={() => navigate("/artist")}
+          className="artist-nav-logo font-serif font-bold text-lg tracking-tight"
         >
-          GigDash
+          GigDash <span className="artist-nav-role">for artists</span>
         </button>
+        {/* Demo indicator - only appears in temporary local mock mode */}
         {localStorage.getItem('mockUser') && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 ml-2">DEMO</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-2">DEMO</span>
         )}
 
         {active === "discover" && (
-          <span className="fan-nav-pill hidden sm:inline-flex" aria-current="page">
+          <span className="artist-nav-pill hidden sm:inline-flex" aria-current="page">
             Discover
           </span>
         )}
+        {active === "recs" && (
+          <span className="artist-nav-pill hidden sm:inline-flex" aria-current="page">
+            Recommended
+          </span>
+        )}
 
-        <div className="fan-nav-actions">
+        <div className="artist-nav-actions">
           {user && (
             <button
               type="button"
               onClick={() => navigate("/settings")}
-              className="fan-nav-settings"
+              className="artist-nav-settings"
               title="Account settings"
               aria-label="Account settings"
             >
@@ -54,14 +60,14 @@ export default function FanNav({ active }: FanNavProps) {
                   {user.username.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="fan-nav-username hidden md:inline">{user.username}</span>
+              <span className="artist-nav-username hidden md:inline">{user.username}</span>
               <Settings className="h-4 w-4 text-muted-foreground md:hidden" aria-hidden />
             </button>
           )}
           <button
             type="button"
             onClick={handleLogout}
-            className="fan-nav-signout"
+            className="artist-nav-signout"
           >
             Sign out
           </button>

@@ -8,7 +8,9 @@ export default function VenueNav() {
   const { user, setUser } = useAuth();
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch {}
     setUser(null);
     navigate("/");
   }
@@ -23,6 +25,9 @@ export default function VenueNav() {
         >
           GigDash
         </button>
+        {localStorage.getItem('mockUser') && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 ml-2">DEMO</span>
+        )}
         <span className="venue-nav-pill hidden sm:inline-flex">Venue dashboard</span>
         <div className="venue-nav-actions">
           {user && (

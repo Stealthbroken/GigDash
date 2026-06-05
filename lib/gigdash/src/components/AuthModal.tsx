@@ -24,7 +24,7 @@ function validatePassword(pw: string): string | null {
 
 export default function AuthModal({ open, onClose, defaultMode = "signup", defaultRole = "fan" }: AuthModalProps) {
   const [, navigate] = useLocation();
-  const { refreshUser } = useAuth();
+  const { refreshUser, setUser } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState("");
@@ -110,11 +110,35 @@ export default function AuthModal({ open, onClose, defaultMode = "signup", defau
             ? "/fan"
             : sessionUser.role === "venue"
               ? "/venue"
-              : "/";
+              : sessionUser.role === "artist"
+                ? "/artist"
+                : "/";
         navigate(dest);
       }
     } catch {
-      setServerError("Could not connect to server. Please try again.");
+      // TEMPORARY MOCK for local testing without backend/DB server.
+      // Lets you "create" accounts and test the full artist flow (signup → onboarding → artist home).
+      // Data is fake and only lives in this browser (localStorage). Clear by logging out or clearing site data.
+      const effectiveRole = mode === "login" && !role ? "artist" : role; // default to artist for easy testing
+      const fakeUser = {
+        id: Date.now(),
+        username: username || (mode === "login" ? "demouser" : "demoartist"),
+        email: email || `${username || (mode === "login" ? "demouser" : "demoartist")}@test.local`,
+        role: effectiveRole,
+        avatarUrl: null,
+      };
+      setUser(fakeUser as any);
+
+      // small hint in console for beginners
+      console.log('%c[Demo Mode] Using fake local account (no real server). Sign out to switch accounts.', 'color:#f59e0b');
+
+      if (mode === "signup") {
+        navigate(`/onboarding?role=${effectiveRole}`);
+      } else {
+        const dest =
+          effectiveRole === "fan" ? "/fan" : effectiveRole === "venue" ? "/venue" : effectiveRole === "artist" ? "/artist" : "/";
+        navigate(dest);
+      }
     } finally {
       setLoading(false);
     }
