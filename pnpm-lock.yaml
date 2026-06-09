@@ -272,12 +272,13 @@ importers:
 
   lib/api-client-react:
     dependencies:
-      '@tanstack/react-query':
-        specifier: ^5.90.21
-        version: 5.100.9(react@19.1.0)
       react:
         specifier: '>=18'
         version: 19.1.0
+    devDependencies:
+      '@tanstack/react-query':
+        specifier: 'catalog:'
+        version: 5.100.9(react@19.1.0)
 
   lib/api-server:
     dependencies:

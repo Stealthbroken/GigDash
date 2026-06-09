@@ -63,7 +63,11 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "src"),
       "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
     },
-    dedupe: ["react", "react-dom"],
+    // Force a single instance of these packages across the workspace. Without this,
+    // @workspace/api-client-react gets its own copy of @tanstack/react-query and the
+    // QueryClientProvider mounted in App.tsx sets context on a different copy than
+    // the generated hooks read from, causing "No QueryClient set" in prod builds.
+    dedupe: ["react", "react-dom", "@tanstack/react-query"],
   },
   root: path.resolve(import.meta.dirname),
   build: {
