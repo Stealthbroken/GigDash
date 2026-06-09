@@ -169,13 +169,29 @@ export default function VenueProfile() {
         )}
 
         {imageUrls.length > 0 && (
-          <section className={`grid gap-3 ${imageUrls.length === 1 ? "grid-cols-1" : imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-            {imageUrls.slice(0, 3).map((src, i) => (
-              <div key={i} className="aspect-[4/3] rounded-xl border border-border overflow-hidden">
-                <img src={src} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </section>
+          imageUrls.length <= 3 ? (
+            <section className={`grid gap-3 ${imageUrls.length === 1 ? "grid-cols-1" : imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {imageUrls.map((src, i) => (
+                <div key={i} className="aspect-[4/3] rounded-xl border border-border overflow-hidden">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </section>
+          ) : (
+            <section
+              className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-2"
+              aria-label={`${imageUrls.length} venue photos, scroll to see all`}
+            >
+              {imageUrls.map((src, i) => (
+                <div
+                  key={i}
+                  className="snap-start shrink-0 w-[78%] sm:w-[calc((100%-1.5rem)/3)] aspect-[4/3] rounded-xl border border-border overflow-hidden"
+                >
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </section>
+          )
         )}
 
         {venue.description && (

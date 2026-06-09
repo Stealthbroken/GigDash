@@ -69,13 +69,29 @@ export default function VenueOverviewPanel({ venue }: VenueOverviewPanelProps) {
       </div>
 
       {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {images.slice(0, 3).map((src, i) => (
-            <div key={i} className="aspect-[4/3] rounded-xl border border-border/60 overflow-hidden">
-              <img src={src} alt="" className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
+        images.length <= 3 ? (
+          <div className="grid grid-cols-3 gap-2">
+            {images.map((src, i) => (
+              <div key={i} className="aspect-[4/3] rounded-xl border border-border/60 overflow-hidden">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-2"
+            aria-label={`${images.length} venue photos, scroll to see all`}
+          >
+            {images.map((src, i) => (
+              <div
+                key={i}
+                className="snap-start shrink-0 w-[calc((100%-1rem)/3)] aspect-[4/3] rounded-xl border border-border/60 overflow-hidden"
+              >
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )
       )}
 
       <div className="grid lg:grid-cols-2 gap-6">

@@ -95,17 +95,10 @@ function EventList({
           return (
             <div
               key={ev.id}
-              className={`rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${muted ? "opacity-75" : ""}`}
+              className={`rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-start gap-3 ${muted ? "opacity-75" : ""}`}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold">{ev.title}</p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
-                    planning ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"
-                  }`}>
-                    {planning ? "! Planning" : "♪ Finalized"}
-                  </span>
-                </div>
+                <p className="font-semibold truncate">{ev.title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(d, "PPP p")}
                   {ev.durationMinutes ? ` · ${ev.durationMinutes} min` : ""}
@@ -123,21 +116,30 @@ function EventList({
                   <span className="text-muted-foreground">{ev.artistCount ?? 0} confirmed</span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/event/${ev.id}`)}
-                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-secondary/60"
+              <div className="flex flex-col gap-2 shrink-0 sm:items-end sm:min-w-[160px]">
+                <span
+                  className={`inline-flex items-center self-start sm:self-end text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${
+                    planning ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"
+                  }`}
                 >
-                  View page
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/venue/event/${ev.id}/manage`)}
-                  className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-500"
-                >
-                  Manage
-                </button>
+                  {planning ? "! Planning" : "♪ Finalized"}
+                </span>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/event/${ev.id}`)}
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-secondary/60"
+                  >
+                    View page
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/venue/event/${ev.id}/manage`)}
+                    className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-500"
+                  >
+                    Manage
+                  </button>
+                </div>
               </div>
             </div>
           );
