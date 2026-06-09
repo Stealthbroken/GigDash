@@ -1,0 +1,45 @@
+# Fly app config. Run `fly launch --no-deploy --copy-config` if you'd rather have
+# Fly regenerate this — but the values below are tuned for this monorepo.
+#
+# Required secrets (set with `fly secrets set KEY=value`):
+#   DATABASE_URL       Neon Postgres connection string (sslmode=require)
+#   SESSION_SECRET     Random 32+ char string for express-session
+#
+# Optional secrets (file uploads via Appwrite):
+#   APPWRITE_ENDPOINT  e.g. https://cloud.appwrite.io/v1
+#   APPWRITE_PROJECT_ID
+#   APPWRITE_API_KEY
+#   APPWRITE_BUCKET_ID
+
+app = "gigdash"            # rename to whatever `fly apps create` gave you
+primary_region = "iad"     # pick the region closest to your Neon db (https://fly.io/docs/reference/regions/)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"   # scale to zero when idle to stay in the free allowance
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -9,10 +9,11 @@
   ],
   "scripts": {
     "dev": "dotenv -e .env -- concurrently -k -n api,web -c blue,green \"pnpm --filter @workspace/api-server run dev\" \"pnpm --filter @workspace/gigdash run dev\"",
-    "build": "npm run typecheck && npm run build:workspaces",
+    "build": "pnpm run -r --filter @workspace/gigdash --filter @workspace/api-server build",
     "build:workspaces": "npm run build --workspaces --if-present",
     "typecheck:libs": "tsc --build",
-    "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present",
+    "start": "node --enable-source-maps lib/api-server/dist/index.mjs"
   },
   "private": true,
   "devDependencies": {

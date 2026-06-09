@@ -1,7 +1,9 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import path from "node:path";
+import { existsSync } from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -54,6 +56,26 @@ app.use(
 );
 
 app.use("/api", router);
+
+// In production, serve the built Vite SPA from this same process. Static assets first,
+// then a catch-all that returns index.html so client-side routes work on hard refresh.
+// STATIC_DIR can override the location; default sits next to the bundled API entry point.
+if (process.env.NODE_ENV === "production") {
+  const defaultStaticDir = path.resolve(__dirname, "public");
+  const staticDir = process.env.STATIC_DIR ?? defaultStaticDir;
+
+  if (existsSync(staticDir)) {
+    app.use(express.static(staticDir, { index: false, maxAge: "1h" }));
+
+    app.get(/^\/(?!api(?:\/|$)).*/, (_req: Request, res: Response, next: NextFunction) => {
+      const indexFile = path.join(staticDir, "index.html");
+      if (!existsSync(indexFile)) return next();
+      res.sendFile(indexFile);
+    });
+  } else {
+    logger.warn({ staticDir }, "STATIC_DIR not found — SPA will not be served");
+  }
+}
 
 // Global error handler - ensures DB and other errors are logged with full details
 app.use((err: any, req: any, res: any, _next: any) => {
