@@ -24,4 +24,5 @@ export interface VenueOnboardingInput {
   description?: string;
   size?: string;
   moods: string[];
+  imageUrls?: string[];
 }

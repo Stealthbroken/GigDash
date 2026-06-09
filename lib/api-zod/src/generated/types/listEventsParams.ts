@@ -13,6 +13,14 @@ genre?: string;
  */
 location?: string;
 /**
+ * Filter by city or town name in venue address
+ */
+city?: string;
+/**
+ * When "true", skip radius filter (for active search filters)
+ */
+skipProximity?: string;
+/**
  * Center latitude for proximity filter
  */
 nearLat?: number;

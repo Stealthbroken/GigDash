@@ -3,26 +3,34 @@ import { Marker, Popup } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
 import type { EventSummary } from "@workspace/api-client-react";
 import VenueEventPopup from "./VenueEventPopup";
+import ArtistEventPopup from "@/components/artist/ArtistEventPopup";
 import {
   createMultiEventMarkerIcon,
   createSingleEventMarkerIcon,
   type MarkerStatus,
 } from "./mapMarkers";
+import { eventMarkerStatus } from "@/lib/eventStatus";
 
 function eventStatus(event: EventSummary): MarkerStatus {
-  return (event.artistCount ?? 0) > 0 ? "finalized" : "planning";
+  return eventMarkerStatus(event);
 }
 
 interface VenueMapMarkerProps {
   group: EventSummary[];
   selectedEventId?: number | null;
   onSelectEvent: (event: EventSummary) => void;
+  artistMode?: boolean;
+  onMessageOrganizer?: (event: EventSummary) => void;
+  onViewEvent?: (event: EventSummary) => void;
 }
 
 export default function VenueMapMarker({
   group,
   selectedEventId,
   onSelectEvent,
+  artistMode = false,
+  onMessageOrganizer,
+  onViewEvent,
 }: VenueMapMarkerProps) {
   const isMulti = group.length > 1;
   const [popupOpen, setPopupOpen] = useState(false);
@@ -31,8 +39,8 @@ export default function VenueMapMarker({
     if (isMulti) {
       return createMultiEventMarkerIcon(group.length, popupOpen);
     }
-    return createSingleEventMarkerIcon(eventStatus(group[0]));
-  }, [isMulti, group, popupOpen]);
+    return createSingleEventMarkerIcon(eventStatus(group[0]), artistMode);
+  }, [isMulti, group, popupOpen, artistMode]);
 
   const sortedGroup = useMemo(
     () =>
@@ -65,12 +73,17 @@ export default function VenueMapMarker({
       eventHandlers={eventHandlers}
     >
       <Popup className="fan-map-popup" minWidth={280} maxWidth={340} autoPan>
-        <VenueEventPopup
-          venueName={group[0].venue?.name ?? "Venue"}
-          events={sortedGroup}
-          selectedEventId={selectedEventId}
-          onSelectEvent={onSelectEvent}
-        />
+        {artistMode && !isMulti ? (
+          <ArtistEventPopup event={group[0]} onMessageOrganizer={onMessageOrganizer} onViewEvent={onViewEvent} />
+        ) : (
+          <VenueEventPopup
+            venueName={group[0].venue?.name ?? "Venue"}
+            events={sortedGroup}
+            selectedEventId={selectedEventId}
+            onSelectEvent={onSelectEvent}
+            onViewEvent={onViewEvent}
+          />
+        )}
       </Popup>
     </Marker>
   );

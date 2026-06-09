@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { artistTabUrl, useAppNavigation } from "@/lib/navigation";
 import {
   getGetAccountSettingsQueryKey,
   useChangeAvatar,
@@ -13,8 +14,10 @@ import LocationSearch from "@/components/LocationSearch";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth, getDemoAccounts, saveDemoAccount } from "@/contexts/AuthContext";
+import { COMPETITION_LEVELS } from "@/lib/venueConstants";
 import { useToast } from "@/hooks/use-toast";
 import CustomTagInput from "@/components/onboarding/CustomTagInput";
+import { isStorageConfigured, uploadFile } from "@/lib/storage";
 
 const MAX_AVATAR_BYTES = 400_000;
 
@@ -65,7 +68,8 @@ function TagButton({ label, selected, onClick }: { label: string; selected: bool
 
 export default function Settings() {
   const [, navigate] = useLocation();
-  const { user, refreshUser } = useAuth();
+  const { goBack } = useAppNavigation();
+  const { user, refreshUser, setUser, artistMatching, setArtistMatchingPrefs } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,9 +180,10 @@ export default function Settings() {
     },
   });
 
-  const backPath =
+  const fallbackBack =
     user?.role === "fan" ? "/fan" :
-    user?.role === "artist" ? "/artist" :
+    user?.role === "artist" ? artistTabUrl("map") :
+    user?.role === "venue" ? "/venue" :
     "/";
 
   function handleUsernameSubmit(e: React.FormEvent) {
@@ -217,7 +222,7 @@ export default function Settings() {
     passwordMutation.mutate({ data: { currentPassword, newPassword } });
   }
 
-  function handleAvatarFile(file: File) {
+  async function handleAvatarFile(file: File) {
     if (isDemoMode) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -245,6 +250,28 @@ export default function Settings() {
       });
       return;
     }
+
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview(preview);
+
+    try {
+      const storageReady = await isStorageConfigured();
+      if (storageReady) {
+        const { url } = await uploadFile(file, "avatar");
+        setAvatarPreview(url);
+        avatarMutation.mutate({ data: { avatarUrl: url } });
+        return;
+      }
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not upload image.",
+        variant: "destructive",
+      });
+      setAvatarPreview(effectiveSettings?.avatarUrl ?? null);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result;
@@ -332,7 +359,7 @@ export default function Settings() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <button
             type="button"
-            onClick={() => navigate(backPath)}
+            onClick={() => goBack(fallbackBack)}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             ← Back
@@ -475,6 +502,69 @@ export default function Settings() {
               </form>
             </section>
 
+            {user?.role === "artist" && (
+              <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div>
+                  <h2 className="font-semibold text-base">Map matching</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Genres and competition level used for venue recommendations — not shown on the map.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-3">Your genres</label>
+                  <div className="flex flex-wrap gap-2">
+                    {GENRES.map((g) => (
+                      <TagButton
+                        key={g}
+                        label={g}
+                        selected={artistMatching.genres.includes(g)}
+                        onClick={() => {
+                          const prev = artistMatching.genres;
+                          const next = prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g];
+                          setArtistMatchingPrefs({ genres: next.length ? next : [g], comp: artistMatching.comp });
+                        }}
+                      />
+                    ))}
+                    <CustomTagInput
+                      accent="amber"
+                      tags={artistMatching.genres.filter((g) => !GENRES.includes(g))}
+                      onAdd={(tag) => {
+                        if (artistMatching.genres.includes(tag)) return;
+                        setArtistMatchingPrefs({ genres: [...artistMatching.genres, tag], comp: artistMatching.comp });
+                      }}
+                      onRemove={(tag) => {
+                        const next = artistMatching.genres.filter((x) => x !== tag);
+                        setArtistMatchingPrefs({ genres: next, comp: artistMatching.comp });
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
+                    Competition level{" "}
+                    <span className="text-amber-400 font-mono normal-case tracking-normal">
+                      {artistMatching.comp == null ? "Any" : `L${artistMatching.comp}`}
+                    </span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <TagButton
+                      label="Any"
+                      selected={artistMatching.comp == null}
+                      onClick={() => setArtistMatchingPrefs({ genres: artistMatching.genres, comp: null })}
+                    />
+                    {COMPETITION_LEVELS.map((c) => (
+                      <TagButton
+                        key={c.level}
+                        label={c.label}
+                        selected={artistMatching.comp === c.level}
+                        onClick={() => setArtistMatchingPrefs({ genres: artistMatching.genres, comp: c.level })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {(isDemoMode || user?.role === "artist") && (
               <section className="rounded-xl border border-border bg-card p-6 space-y-4">
                 <div>
@@ -521,13 +611,22 @@ export default function Settings() {
                     onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleArtistProfileSave}
-                  className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors"
-                >
-                  Save artist profile
-                </button>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleArtistProfileSave}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors"
+                  >
+                    Save artist profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(artistTabUrl("preview"))}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
+                  >
+                    Preview public profile
+                  </button>
+                </div>
               </section>
             )}
 

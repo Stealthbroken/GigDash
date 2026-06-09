@@ -12,6 +12,13 @@ const { db, usersTable, artistsTable, venuesTable, fansTable, fanFollowsTable, e
 const { default: bcrypt } = await import("bcryptjs");
 
 async function seed() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_SEED !== "true") {
+    console.error(
+      "Refusing to seed in production. Set ALLOW_SEED=true only for intentional demo restores.",
+    );
+    process.exit(1);
+  }
+
   console.log("🌱 Seeding database...");
 
   const hash = (pw: string) => bcrypt.hash(pw, 10);

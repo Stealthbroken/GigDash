@@ -210,6 +210,8 @@ export const SearchGeoPlacesResponse = zod.object({
 export const ListEventsQueryParams = zod.object({
   "genre": zod.coerce.string().optional(),
   "location": zod.coerce.string().optional().describe('Filter by venue name or address substring'),
+  "city": zod.coerce.string().optional().describe('Filter by city or town name in venue address'),
+  "skipProximity": zod.coerce.string().optional().describe('When \"true\", skip radius filter (for active search filters)'),
   "nearLat": zod.coerce.number().optional().describe('Center latitude for proximity filter'),
   "nearLng": zod.coerce.number().optional().describe('Center longitude for proximity filter'),
   "radiusKm": zod.coerce.number().optional().describe('Radius in km (default 10, min 1, max 10)'),
@@ -234,6 +236,7 @@ export const ListEventsResponse = zod.object({
   "durationMinutes": zod.number().nullish(),
   "status": zod.string().optional(),
   "artistCount": zod.number().optional(),
+  "artistIds": zod.array(zod.number()).optional().describe('IDs of confirmed performing artists'),
   "venue": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -243,7 +246,8 @@ export const ListEventsResponse = zod.object({
   "moods": zod.array(zod.string()).optional(),
   "imageUrls": zod.array(zod.string()).optional(),
   "lat": zod.number().nullish(),
-  "lng": zod.number().nullish()
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
 })
 })),
   "total": zod.number()
@@ -309,7 +313,8 @@ export const GetEventResponse = zod.object({
   "moods": zod.array(zod.string()).optional(),
   "imageUrls": zod.array(zod.string()).optional(),
   "lat": zod.number().nullish(),
-  "lng": zod.number().nullish()
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
 }),
   "artists": zod.array(zod.object({
   "id": zod.number(),
@@ -321,13 +326,141 @@ export const GetEventResponse = zod.object({
 
 
 /**
+ * @summary Update an event (venue owner only)
+ */
+export const UpdateEventParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateEventBodyTitleMax = 100;
+
+export const updateEventBodyCompetitionLevelMax = 5;
+
+export const updateEventBodyDurationMinutesMin = 15;
+
+
+
+export const UpdateEventBody = zod.object({
+  "title": zod.string().max(updateEventBodyTitleMax).optional(),
+  "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "genres": zod.array(zod.string()).optional(),
+  "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().min(1).max(updateEventBodyCompetitionLevelMax).nullish(),
+  "eventDate": zod.coerce.date().optional(),
+  "durationMinutes": zod.number().min(updateEventBodyDurationMinutesMin).nullish(),
+  "status": zod.enum(['upcoming', 'finalized']).optional().describe('upcoming = planning; finalized = venue locked lineup for fans')
+})
+
+export const UpdateEventResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "artistRequirements": zod.string().nullish(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "genres": zod.array(zod.string()).optional(),
+  "isPaid": zod.boolean().optional(),
+  "payAmount": zod.string().nullish(),
+  "isCompetition": zod.boolean().optional(),
+  "competitionLevel": zod.number().nullish(),
+  "eventDate": zod.coerce.date(),
+  "durationMinutes": zod.number().nullish(),
+  "status": zod.string().optional(),
+  "artistCount": zod.number().optional(),
+  "venue": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "size": zod.string().nullish(),
+  "moods": zod.array(zod.string()).optional(),
+  "imageUrls": zod.array(zod.string()).optional(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
+}),
+  "artists": zod.array(zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "genres": zod.array(zod.string()).optional(),
+  "bio": zod.string().nullish()
+})).optional()
+})
+
+
+/**
+ * @summary List artist outreach for an event (venue owner only)
+ */
+export const ListEventOutreachParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListEventOutreachResponse = zod.object({
+  "outreach": zod.array(zod.object({
+  "id": zod.number(),
+  "artistId": zod.number(),
+  "displayName": zod.string(),
+  "username": zod.string().optional(),
+  "genres": zod.array(zod.string()).optional(),
+  "status": zod.enum(['contacted', 'pending', 'confirmed', 'declined']),
+  "notes": zod.string().nullish(),
+  "eventId": zod.number().optional(),
+  "eventTitle": zod.string().optional(),
+  "eventDate": zod.coerce.date().optional()
+}))
+})
+
+
+/**
+ * @summary Add or update artist outreach for an event (venue owner only)
+ */
+export const UpsertEventOutreachParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpsertEventOutreachBody = zod.object({
+  "artistId": zod.number(),
+  "status": zod.enum(['contacted', 'pending', 'confirmed', 'declined']),
+  "notes": zod.string().nullish()
+})
+
+export const UpsertEventOutreachResponse = zod.object({
+  "id": zod.number(),
+  "artistId": zod.number(),
+  "displayName": zod.string(),
+  "username": zod.string().optional(),
+  "genres": zod.array(zod.string()).optional(),
+  "status": zod.enum(['contacted', 'pending', 'confirmed', 'declined']),
+  "notes": zod.string().nullish(),
+  "eventId": zod.number().optional(),
+  "eventTitle": zod.string().optional(),
+  "eventDate": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Remove a confirmed artist from the event lineup (venue owner only)
+ */
+export const RemoveEventArtistParams = zod.object({
+  "id": zod.coerce.number(),
+  "artistId": zod.coerce.number()
+})
+
+
+/**
  * @summary Get current fan profile
  */
 export const GetFanMeResponse = zod.object({
   "id": zod.number(),
   "displayName": zod.string(),
   "location": zod.string().nullish(),
-  "genres": zod.array(zod.string()).optional()
+  "genres": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "appleMusicUrl": zod.string().nullish(),
+  "tidalUrl": zod.string().nullish()
 })
 
 
@@ -342,14 +475,20 @@ export const UpdateFanMeBody = zod.object({
   "displayName": zod.string().min(1).max(updateFanMeBodyDisplayNameMax),
   "avatarUrl": zod.string().optional(),
   "location": zod.string().optional(),
-  "genres": zod.array(zod.string())
+  "genres": zod.array(zod.string()),
+  "spotifyUrl": zod.string().optional(),
+  "appleMusicUrl": zod.string().optional(),
+  "tidalUrl": zod.string().optional()
 })
 
 export const UpdateFanMeResponse = zod.object({
   "id": zod.number(),
   "displayName": zod.string(),
   "location": zod.string().nullish(),
-  "genres": zod.array(zod.string()).optional()
+  "genres": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "appleMusicUrl": zod.string().nullish(),
+  "tidalUrl": zod.string().nullish()
 })
 
 
@@ -375,6 +514,64 @@ export const ListFollowedArtistsResponse = zod.object({
 
 
 /**
+ * @summary Follow an artist
+ */
+export const FollowArtistParams = zod.object({
+  "artistId": zod.coerce.number()
+})
+
+
+/**
+ * @summary Unfollow an artist
+ */
+export const UnfollowArtistParams = zod.object({
+  "artistId": zod.coerce.number()
+})
+
+
+/**
+ * @summary List venues the current fan follows
+ */
+export const ListFollowedVenuesResponse = zod.object({
+  "venues": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "description": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+}))
+})
+
+
+/**
+ * @summary Follow a venue
+ */
+export const FollowVenueParams = zod.object({
+  "venueId": zod.coerce.number()
+})
+
+
+/**
+ * @summary Unfollow a venue
+ */
+export const UnfollowVenueParams = zod.object({
+  "venueId": zod.coerce.number()
+})
+
+
+/**
+ * @summary Get fan's most recent rating activity summary
+ */
+export const GetFanRatingSummaryResponse = zod.object({
+  "targetType": zod.string().optional(),
+  "targetId": zod.number().optional(),
+  "average": zod.number(),
+  "count": zod.number()
+})
+
+
+/**
  * @summary Get fan profile
  */
 export const GetFanParams = zod.object({
@@ -385,7 +582,90 @@ export const GetFanResponse = zod.object({
   "id": zod.number(),
   "displayName": zod.string(),
   "location": zod.string().nullish(),
-  "genres": zod.array(zod.string()).optional()
+  "genres": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "appleMusicUrl": zod.string().nullish(),
+  "tidalUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Search artists
+ */
+export const ListArtistsQueryParams = zod.object({
+  "genre": zod.coerce.string().optional(),
+  "minRate": zod.coerce.number().optional(),
+  "maxRate": zod.coerce.number().optional(),
+  "q": zod.coerce.string().optional(),
+  "eventDate": zod.date().optional().describe('Filter to artists available on this date (not blocked)'),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListArtistsResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "bio": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "vibes": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish(),
+  "rateTier": zod.number().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "username": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Get public artist profile
+ */
+export const GetArtistParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetArtistResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "bio": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "vibes": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish(),
+  "rateTier": zod.number().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "followerCount": zod.number().optional(),
+  "venuesPlayed": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string()
+})).optional(),
+  "ratingAverage": zod.number().optional(),
+  "ratingCount": zod.number().optional()
+})
+
+
+/**
+ * @summary Get current artist public profile
+ */
+export const GetArtistMeResponse = zod.object({
+  "id": zod.number(),
+  "displayName": zod.string(),
+  "bio": zod.string().nullish(),
+  "genres": zod.array(zod.string()).optional(),
+  "vibes": zod.array(zod.string()).optional(),
+  "spotifyUrl": zod.string().nullish(),
+  "youtubeUrl": zod.string().nullish(),
+  "rateTier": zod.number().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "followerCount": zod.number().optional(),
+  "venuesPlayed": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string()
+})).optional(),
+  "ratingAverage": zod.number().optional(),
+  "ratingCount": zod.number().optional()
 })
 
 
@@ -418,6 +698,231 @@ export const UpdateArtistMeResponse = zod.object({
 
 
 /**
+ * @summary List upcoming gigs for the current artist (confirmed lineup + pending invites)
+ */
+export const ListArtistGigsResponse = zod.object({
+  "gigs": zod.array(zod.object({
+  "eventId": zod.number(),
+  "outreachId": zod.number().nullish().describe('Set when gigStatus is pending (for chat accept flow)'),
+  "title": zod.string(),
+  "eventDate": zod.coerce.date(),
+  "eventStatus": zod.string().describe('Event planning state (upcoming or finalized)'),
+  "gigStatus": zod.enum(['confirmed', 'pending']),
+  "venue": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "address": zod.string(),
+  "ownerUsername": zod.string().optional()
+})
+}))
+})
+
+
+/**
+ * @summary List blocked availability dates
+ */
+export const ListBlockedDatesResponse = zod.object({
+  "dates": zod.array(zod.coerce.date())
+})
+
+
+/**
+ * @summary Block a date from availability
+ */
+export const AddBlockedDateBody = zod.object({
+  "date": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a blocked date
+ */
+export const RemoveBlockedDateParams = zod.object({
+  "date": zod.date()
+})
+
+
+/**
+ * @summary List chat conversations
+ */
+export const ListConversationsResponse = zod.object({
+  "conversations": zod.array(zod.object({
+  "id": zod.number(),
+  "otherUser": zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "profileId": zod.number().nullish().describe('Public profile id (venue id or artist id)')
+}),
+  "lastMessage": zod.object({
+  "body": zod.string().nullish(),
+  "attachmentType": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional()
+}).nullish(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Start a conversation by username
+ */
+export const StartConversationBody = zod.object({
+  "username": zod.string()
+})
+
+
+/**
+ * @summary Get conversation messages
+ */
+export const GetConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetConversationResponse = zod.object({
+  "id": zod.number(),
+  "otherUser": zod.union([zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "profileId": zod.number().nullish().describe('Public profile id (venue id or artist id)')
+}),zod.null()]).optional(),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "senderUserId": zod.number(),
+  "body": zod.string().nullish(),
+  "attachmentUrl": zod.string().nullish(),
+  "attachmentType": zod.string().nullish(),
+  "attachmentName": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Send a message
+ */
+export const SendMessageParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendMessageBody = zod.object({
+  "body": zod.string().optional(),
+  "attachmentUrl": zod.string().optional(),
+  "attachmentType": zod.enum(['image', 'file']).optional(),
+  "attachmentName": zod.string().optional()
+})
+
+
+/**
+ * @summary Close a conversation
+ */
+export const CloseConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List pending gig invites in this conversation (artist only)
+ */
+export const ListConversationGigInvitesParams = zod.object({
+  "conversationId": zod.coerce.number()
+})
+
+export const ListConversationGigInvitesResponse = zod.object({
+  "invites": zod.array(zod.object({
+  "outreachId": zod.number(),
+  "eventId": zod.number(),
+  "eventTitle": zod.string(),
+  "eventDate": zod.coerce.date(),
+  "venueId": zod.number(),
+  "venueName": zod.string(),
+  "status": zod.enum(['pending'])
+}))
+})
+
+
+/**
+ * @summary Accept or decline a gig invite (artist only)
+ */
+export const RespondToGigInviteParams = zod.object({
+  "conversationId": zod.coerce.number(),
+  "outreachId": zod.coerce.number()
+})
+
+export const RespondToGigInviteBody = zod.object({
+  "action": zod.enum(['accept', 'decline'])
+})
+
+export const RespondToGigInviteResponse = zod.object({
+  "id": zod.number(),
+  "artistId": zod.number(),
+  "displayName": zod.string(),
+  "username": zod.string().optional(),
+  "genres": zod.array(zod.string()).optional(),
+  "status": zod.enum(['contacted', 'pending', 'confirmed', 'declined']),
+  "notes": zod.string().nullish(),
+  "eventId": zod.number().optional(),
+  "eventTitle": zod.string().optional(),
+  "eventDate": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Search users to start a chat
+ */
+export const SearchChatUsersQueryParams = zod.object({
+  "q": zod.coerce.string()
+})
+
+export const SearchChatUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "role": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "profileId": zod.number().nullish().describe('Public profile id (venue id or artist id)')
+}))
+})
+
+
+/**
+ * @summary Rate an artist or venue
+ */
+export const createRatingBodyScoreMax = 5;
+
+
+
+export const CreateRatingBody = zod.object({
+  "targetType": zod.enum(['artist', 'venue']),
+  "targetId": zod.number(),
+  "score": zod.number().min(1).max(createRatingBodyScoreMax),
+  "comment": zod.string().optional()
+})
+
+
+/**
+ * @summary Get average rating for target
+ */
+export const GetRatingSummaryParams = zod.object({
+  "targetType": zod.enum(['artist', 'venue']),
+  "targetId": zod.coerce.number()
+})
+
+export const GetRatingSummaryResponse = zod.object({
+  "targetType": zod.string().optional(),
+  "targetId": zod.number().optional(),
+  "average": zod.number(),
+  "count": zod.number()
+})
+
+
+/**
  * @summary Get current venue profile
  */
 export const GetVenueMeResponse = zod.object({
@@ -429,7 +934,8 @@ export const GetVenueMeResponse = zod.object({
   "moods": zod.array(zod.string()).optional(),
   "imageUrls": zod.array(zod.string()).optional(),
   "lat": zod.number().nullish(),
-  "lng": zod.number().nullish()
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
 })
 
 
@@ -448,7 +954,8 @@ export const UpdateVenueMeBody = zod.object({
   "lng": zod.number().describe('WGS84 longitude from geocoding suggestion'),
   "description": zod.string().optional(),
   "size": zod.string().optional(),
-  "moods": zod.array(zod.string())
+  "moods": zod.array(zod.string()),
+  "imageUrls": zod.array(zod.string()).optional()
 })
 
 export const UpdateVenueMeResponse = zod.object({
@@ -460,7 +967,8 @@ export const UpdateVenueMeResponse = zod.object({
   "moods": zod.array(zod.string()).optional(),
   "imageUrls": zod.array(zod.string()).optional(),
   "lat": zod.number().nullish(),
-  "lng": zod.number().nullish()
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
 })
 
 
@@ -480,7 +988,8 @@ export const GetVenueResponse = zod.object({
   "moods": zod.array(zod.string()).optional(),
   "imageUrls": zod.array(zod.string()).optional(),
   "lat": zod.number().nullish(),
-  "lng": zod.number().nullish()
+  "lng": zod.number().nullish(),
+  "ownerUsername": zod.string().optional().describe('Venue account username (for artist messaging)')
 })
 
 

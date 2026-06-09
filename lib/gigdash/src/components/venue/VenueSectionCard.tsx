@@ -12,7 +12,7 @@ interface VenueSectionCardProps {
 export default function VenueSectionCard({
   title,
   description,
-  comingSoon = true,
+  comingSoon = false,
   children,
   action,
 }: VenueSectionCardProps) {

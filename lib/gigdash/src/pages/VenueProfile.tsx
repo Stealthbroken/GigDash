@@ -1,7 +1,16 @@
-import { useRoute } from "wouter";
-import { useLocation } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useSearch } from "wouter";
-import { useGetVenue } from "@workspace/api-client-react";
+import { format } from "date-fns";
+import {
+  useGetVenue,
+  useListEvents,
+  useFollowVenue,
+  useUnfollowVenue,
+  useListFollowedVenues,
+  useGetRatingSummary,
+} from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { artistTabUrl, useAppNavigation } from "@/lib/navigation";
 
 interface VenueData {
   venueName: string;
@@ -14,19 +23,18 @@ interface VenueData {
 
 const SIZE_LABEL: Record<string, string> = {
   xs: "Tiny (< 50 guests)",
-  sm: "Small (50\u2013200 guests)",
-  md: "Medium (200\u2013500 guests)",
+  sm: "Small (50–200 guests)",
+  md: "Medium (200–500 guests)",
   lg: "Large (500+ guests)",
 };
 
 export default function VenueProfile() {
-  const [, navigate] = useLocation();
+  const { navigate, goBack, linkTo } = useAppNavigation();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const dataParam = params.get("data");
   const [match, routeParams] = useRoute("/venue/:id");
 
-  // Check if this is a new onboarding-created venue (with ?data= param) or an existing venue
   let onboardingData: VenueData | null = null;
   try {
     if (dataParam) {
@@ -41,7 +49,11 @@ export default function VenueProfile() {
     query: { queryKey: ["venue", venueId], enabled: !isNaN(venueId) && !onboardingData },
   });
 
-  // Use onboarding data if present, otherwise fall back to API data
+  const { data: eventsData } = useListEvents({ limit: 100 });
+  const { data: followedVenues, refetch } = useListFollowedVenues();
+  const { data: rating } = useGetRatingSummary("venue", venueId);
+  const { user } = useAuth();
+
   const venue = onboardingData
     ? {
         id: -1,
@@ -51,154 +63,213 @@ export default function VenueProfile() {
         size: onboardingData.size,
         moods: onboardingData.moods,
         imageUrls: onboardingData.images,
+        lat: null,
+        lng: null,
       }
     : apiVenue;
 
+  const venueEvents = (eventsData?.events ?? []).filter((e) => e.venue?.id === venueId);
+  const now = new Date();
+  const upcoming = venueEvents
+    .filter((e) => new Date(e.eventDate) >= now)
+    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  const past = venueEvents
+    .filter((e) => new Date(e.eventDate) < now)
+    .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
+    .slice(0, 6);
+  const isFollowing = followedVenues?.venues?.some((v) => v.id === venueId) ?? false;
+
+  const fallbackBack =
+    user?.role === "fan" ? "/fan" :
+    user?.role === "artist" ? artistTabUrl("map") :
+    user?.role === "venue" ? "/venue" : "/";
+
+  const followMutation = useFollowVenue({ mutation: { onSuccess: () => refetch() } });
+  const unfollowMutation = useUnfollowVenue({ mutation: { onSuccess: () => refetch() } });
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-            <button onClick={() => navigate("/")} className="font-serif font-bold text-xl text-amber-400 tracking-tight">GigDash</button>
-          </div>
-        </header>
-        <div className="max-w-3xl mx-auto px-4 pt-24">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-2/3" />
-            <div className="h-4 bg-muted rounded w-1/2" />
-            <div className="h-48 bg-muted rounded" />
-            <div className="h-24 bg-muted rounded" />
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="venue-public-page min-h-screen flex items-center justify-center text-muted-foreground text-sm">Loading venue…</div>;
   }
 
   if (!venue) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
-        <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-            <button onClick={() => navigate("/")} className="font-serif font-bold text-xl text-amber-400 tracking-tight">GigDash</button>
-            <nav className="flex items-center gap-1">
-              <button onClick={() => navigate("/")} className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-secondary">Home</button>
-            </nav>
-          </div>
-        </header>
-        <div className="max-w-3xl mx-auto px-4 pt-20 pb-16">
-          <div className="text-center py-20">
-            <span className="text-4xl mb-3 block">❌</span>
-            <p className="text-lg font-medium">Venue not found</p>
-            <p className="text-sm text-muted-foreground mt-1">{error ? "Could not load venue data." : "This venue doesn't exist or has been removed."}</p>
-            <button onClick={() => navigate("/")} className="mt-6 px-6 py-2.5 bg-violet-500 hover:bg-violet-400 text-white font-semibold rounded-lg text-sm transition-colors">
-              Go home
-            </button>
-          </div>
-        </div>
+      <div className="venue-public-page min-h-screen flex flex-col items-center justify-center gap-3 px-4">
+        <p className="text-lg font-medium">Venue not found</p>
+        <p className="text-sm text-muted-foreground">{error ? "Could not load venue." : "This venue doesn't exist."}</p>
+        <button onClick={() => navigate("/")} className="mt-2 px-5 py-2 rounded-lg bg-violet-600 text-white text-sm">Go home</button>
       </div>
     );
   }
 
   const imageUrls = venue.imageUrls ?? [];
-  const name = venue.name ?? "Unknown Venue";
-  const description = venue.description ?? "";
-  const size = venue.size ?? "";
-  const moods = venue.moods ?? [];
-  const address = venue.address ?? "";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <button onClick={() => navigate("/")} className="font-serif font-bold text-xl text-amber-400 tracking-tight">GigDash</button>
-          <nav className="flex items-center gap-1">
-            <button onClick={() => navigate("/")} className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-secondary">Home</button>
-          </nav>
+    <div className="venue-public-page min-h-screen bg-background text-foreground">
+      <header className="venue-public-nav sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-md">
+        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+          <button type="button" onClick={() => navigate(user?.role === "fan" ? "/fan" : "/")} className="font-serif font-bold text-violet-400">
+            GigDash
+          </button>
+          <button type="button" onClick={() => goBack(fallbackBack)} className="text-sm text-muted-foreground hover:text-foreground">
+            ← Back
+          </button>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 pt-20 pb-16">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-          <button onClick={() => navigate("/")} className="hover:text-foreground transition-colors">Home</button>
-          <span>/</span>
-          <span className="text-foreground font-medium">Venue</span>
-        </div>
-
-        {/* Hero */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <span className="text-violet-400">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-              </svg>
-            </span>
-            <span>Venue</span>
-            {size && (
-              <>
-                <span>·</span>
-                <span>{SIZE_LABEL[size] ?? size}</span>
-              </>
+      <main className="venue-public-main max-w-3xl mx-auto px-4 py-8 pb-16 space-y-8">
+        <section className="venue-public-hero rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-card to-card p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-violet-400 mb-2">Venue</p>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-2">{venue.name}</h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <span>📍</span> {venue.address}
+          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted-foreground">
+            {venue.size && <span>{SIZE_LABEL[venue.size] ?? venue.size}</span>}
+            {(rating?.count ?? 0) > 0 && <span>★ {(rating?.average ?? 0).toFixed(1)} ({rating?.count} ratings)</span>}
+          </div>
+          <div className="flex flex-wrap gap-3 mt-4">
+            {user?.role === "fan" && venueId > 0 && (
+              <button
+                type="button"
+                onClick={() => (isFollowing ? unfollowMutation.mutate({ venueId }) : followMutation.mutate({ venueId }))}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  isFollowing ? "border border-border text-muted-foreground" : "bg-violet-600 text-white hover:bg-violet-500"
+                }`}
+              >
+                {isFollowing ? "Following" : "Follow for event updates"}
+              </button>
+            )}
+            {user?.role === "fan" && (
+              <button
+                type="button"
+                onClick={() => navigate("/fan")}
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+              >
+                View on map
+              </button>
             )}
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-2">{name}</h1>
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 shrink-0" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-            <span>{address}</span>
-          </div>
-        </div>
+        </section>
 
-        {/* Photos — up to 3 */}
+        {venueId > 0 && (
+          <section className="grid grid-cols-3 gap-3">
+            <div className="venue-public-stat">
+              <p className="venue-public-stat-value">{upcoming.length}</p>
+              <p className="venue-public-stat-label">Upcoming</p>
+            </div>
+            <div className="venue-public-stat">
+              <p className="venue-public-stat-value">{venueEvents.length}</p>
+              <p className="venue-public-stat-label">Total events</p>
+            </div>
+            <div className="venue-public-stat">
+              <p className="venue-public-stat-value">{(rating?.average ?? 0).toFixed(1)}</p>
+              <p className="venue-public-stat-label">Rating ({rating?.count ?? 0})</p>
+            </div>
+          </section>
+        )}
+
         {imageUrls.length > 0 && (
-          <div className="mb-8">
-            <div className={`grid gap-3 ${imageUrls.length === 1 ? "grid-cols-1" : imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-              {imageUrls.slice(0, 3).map((src, i) => (
-                <div key={i} className="aspect-[4/3] rounded-xl border border-border overflow-hidden bg-card">
-                  <img src={src} alt={`Venue photo ${i + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-            {imageUrls.length > 3 && (
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                +{imageUrls.length - 3} more photo{imageUrls.length - 3 !== 1 ? "s" : ""} not shown
-              </p>
-            )}
-          </div>
+          <section className={`grid gap-3 ${imageUrls.length === 1 ? "grid-cols-1" : imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {imageUrls.slice(0, 3).map((src, i) => (
+              <div key={i} className="aspect-[4/3] rounded-xl border border-border overflow-hidden">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </section>
         )}
 
-        {/* Description */}
-        {description && (
-          <div className="mb-8">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">About</h2>
-            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{description}</p>
-          </div>
+        {venue.description && (
+          <section>
+            <h2 className="venue-public-section-title">About</h2>
+            <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap">{venue.description}</p>
+          </section>
         )}
 
-        {/* Moods */}
-        {moods.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Mood & Environment</h2>
+        {venue.moods && venue.moods.length > 0 && (
+          <section>
+            <h2 className="venue-public-section-title">Atmosphere</h2>
             <div className="flex flex-wrap gap-2">
-              {moods.map((m) => (
-                <span key={m} className="px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-400 text-sm font-medium">{m}</span>
+              {venue.moods.map((m) => (
+                <span key={m} className="px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-400 text-sm">{m}</span>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* CTA */}
-        <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row items-center gap-4 justify-between">
-          <div>
-            <h3 className="font-semibold text-sm">Ready to start booking?</h3>
-            <p className="text-xs text-muted-foreground mt-1">List your next event and let artists discover your space.</p>
-          </div>
-          <button className="px-5 py-2.5 bg-violet-500 hover:bg-violet-400 text-white font-semibold rounded-lg text-sm transition-colors shrink-0" onClick={() => { /* Event listing coming soon */ }}>
-            Create an event
-          </button>
-        </div>
-      </div>
+        <section>
+          <h2 className="venue-public-section-title">Upcoming events</h2>
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center rounded-xl border border-dashed border-border">
+              No upcoming events listed yet.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {upcoming.map((ev) => {
+                const planning = ev.status !== "finalized";
+                return (
+                  <li key={ev.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(linkTo(`/event/${ev.id}`))}
+                      className="venue-public-event-card w-full text-left rounded-xl border border-border p-4 hover:border-violet-500/40 hover:bg-violet-500/5 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{ev.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(ev.eventDate), "PPP · p")}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${planning ? "bg-red-500/15 text-red-400" : "bg-emerald-500/15 text-emerald-400"}`}>
+                          {planning ? "! Planning" : "♪ Finalized"}
+                        </span>
+                      </div>
+                      {ev.genres && ev.genres.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground mt-2">{ev.genres.join(" · ")}</p>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        {past.length > 0 && (
+          <section>
+            <h2 className="venue-public-section-title">Past events</h2>
+            <ul className="space-y-2">
+              {past.map((ev) => (
+                <li key={ev.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(linkTo(`/event/${ev.id}`))}
+                    className="venue-public-event-card w-full text-left rounded-xl border border-border/70 p-3 opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    <p className="font-medium text-sm">{ev.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(ev.eventDate), "PPP")}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {user?.role === "venue" && (
+          <section className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-sm">Manage your venue</h3>
+              <p className="text-xs text-muted-foreground mt-1">Post events, edit your space, and find artists from the dashboard.</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button onClick={() => navigate("/venue/create-event")} className="px-4 py-2.5 border border-violet-500/40 text-violet-400 font-semibold rounded-lg text-sm hover:bg-violet-500/10">
+                New event
+              </button>
+              <button onClick={() => navigate("/venue")} className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-lg text-sm">
+                Dashboard
+              </button>
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 }

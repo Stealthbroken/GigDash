@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { VENUE_GENRES, COMPETITION_LEVELS, DESCRIPTION_MAX_WORDS } from "@/lib/venueConstants";
+import CustomTagInput from "@/components/onboarding/CustomTagInput";
 import { cn } from "@/lib/utils";
 
 function countWords(text: string): number {
@@ -356,6 +357,12 @@ export default function VenueCreateEvent() {
                       </button>
                     );
                   })}
+                  <CustomTagInput
+                    accent="violet"
+                    tags={genres.filter((g) => !(VENUE_GENRES as readonly string[]).includes(g))}
+                    onAdd={(tag) => setGenres((prev) => (prev.includes(tag) ? prev : [...prev, tag]))}
+                    onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
+                  />
                 </div>
               </div>
 

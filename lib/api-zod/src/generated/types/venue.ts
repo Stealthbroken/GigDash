@@ -20,4 +20,6 @@ export interface Venue {
   lat?: number | null;
   /** @nullable */
   lng?: number | null;
+  /** Venue account username (for artist messaging) */
+  ownerUsername?: string;
 }

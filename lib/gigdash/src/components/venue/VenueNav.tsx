@@ -2,9 +2,11 @@ import { useLocation } from "wouter";
 import { Settings, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAppNavigation } from "@/lib/navigation";
 
 export default function VenueNav() {
   const [, navigate] = useLocation();
+  const { linkTo } = useAppNavigation();
   const { user, setUser } = useAuth();
 
   async function handleLogout() {
@@ -33,7 +35,7 @@ export default function VenueNav() {
           {user && (
             <button
               type="button"
-              onClick={() => navigate("/settings")}
+              onClick={() => navigate(linkTo("/settings"))}
               className="venue-nav-settings"
               title="Account settings"
               aria-label="Account settings"

@@ -75,6 +75,7 @@ export default function VenueMessageDialog({
   if (!venue) return null;
 
   async function handleSend() {
+    if (!venue) return;
     const text = draft.trim();
     if (!text || sending) return;
 

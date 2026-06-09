@@ -2,13 +2,11 @@ import { useLocation } from "wouter";
 import { Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { artistTabUrl, useAppNavigation } from "@/lib/navigation";
 
-interface ArtistNavProps {
-  active?: "discover" | "recs";
-}
-
-export default function ArtistNav({ active }: ArtistNavProps) {
+export default function ArtistNav() {
   const [, navigate] = useLocation();
+  const { linkTo } = useAppNavigation();
   const { user, setUser } = useAuth();
 
   async function handleLogout() {
@@ -24,32 +22,20 @@ export default function ArtistNav({ active }: ArtistNavProps) {
       <div className="artist-nav-inner">
         <button
           type="button"
-          onClick={() => navigate("/artist")}
+          onClick={() => navigate(artistTabUrl("map"))}
           className="artist-nav-logo font-serif font-bold text-lg tracking-tight"
         >
           GigDash <span className="artist-nav-role">for artists</span>
         </button>
-        {/* Demo indicator - only appears in temporary local mock mode */}
         {user && user.email && user.email.endsWith('@test.local') && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-2">DEMO</span>
-        )}
-
-        {active === "discover" && (
-          <span className="artist-nav-pill hidden sm:inline-flex" aria-current="page">
-            Discover
-          </span>
-        )}
-        {active === "recs" && (
-          <span className="artist-nav-pill hidden sm:inline-flex" aria-current="page">
-            Recommended
-          </span>
         )}
 
         <div className="artist-nav-actions">
           {user && (
             <button
               type="button"
-              onClick={() => navigate("/settings")}
+              onClick={() => navigate(linkTo("/settings"))}
               className="artist-nav-settings"
               title="Account settings"
               aria-label="Account settings"

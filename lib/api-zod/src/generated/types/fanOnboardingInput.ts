@@ -15,4 +15,7 @@ export interface FanOnboardingInput {
   avatarUrl?: string;
   location?: string;
   genres: string[];
+  spotifyUrl?: string;
+  appleMusicUrl?: string;
+  tidalUrl?: string;
 }

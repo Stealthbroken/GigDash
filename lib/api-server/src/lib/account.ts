@@ -1,7 +1,9 @@
 import type { User } from "@workspace/db";
+import { isAppwriteFileUrl } from "./appwrite-storage";
 
 export const USERNAME_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
 const AVATAR_MAX_LENGTH = 600_000;
+const URL_MAX_LENGTH = 2048;
 
 export function validatePassword(password: string): string | null {
   if (password.length < 8) return "Password must be at least 8 characters.";
@@ -32,16 +34,34 @@ export function nextUsernameChangeAt(usernameChangedAt: Date | null): Date | nul
   return new Date(unlockAt);
 }
 
-export function validateAvatarUrl(avatarUrl: string | null | undefined): string | null {
-  if (avatarUrl == null || avatarUrl === "") return null;
-  if (avatarUrl.length > AVATAR_MAX_LENGTH) {
-    return "Image is too large. Use a smaller file or an image URL.";
-  }
-  if (/^https?:\/\/.+/i.test(avatarUrl)) return null;
-  if (/^data:image\/(jpeg|jpg|png|gif|webp);base64,[a-zA-Z0-9+/=]+$/i.test(avatarUrl)) {
+export function validateImageUrl(url: string | null | undefined, opts?: { allowBase64?: boolean }): string | null {
+  if (url == null || url === "") return null;
+  if (/^https?:\/\/.+/i.test(url)) {
+    if (url.length > URL_MAX_LENGTH) return "Image URL is too long.";
+    if (isAppwriteFileUrl(url)) return null;
     return null;
   }
-  return "Avatar must be an http(s) image URL or an uploaded image file.";
+  if (opts?.allowBase64 !== false && /^data:image\/(jpeg|jpg|png|gif|webp);base64,[a-zA-Z0-9+/=]+$/i.test(url)) {
+    if (url.length > AVATAR_MAX_LENGTH) {
+      return "Image is too large. Upload via storage instead.";
+    }
+    return null;
+  }
+  return "Image must be an http(s) URL or an uploaded image file.";
+}
+
+export function validateAvatarUrl(avatarUrl: string | null | undefined): string | null {
+  return validateImageUrl(avatarUrl);
+}
+
+export function validateImageUrlList(urls: string[] | undefined, max = 12): string | null {
+  if (!urls) return null;
+  if (urls.length > max) return `At most ${max} images allowed.`;
+  for (const url of urls) {
+    const err = validateImageUrl(url);
+    if (err) return err;
+  }
+  return null;
 }
 
 export function toUserSession(user: User) {

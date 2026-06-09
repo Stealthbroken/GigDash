@@ -13,6 +13,7 @@ import L from "leaflet";
 import type { EventSummary } from "@workspace/api-client-react";
 import VenueMapMarker from "./VenueMapMarker";
 import type { MarkerStatus } from "./mapMarkers";
+import { eventMarkerStatus, canMessageOrganizer } from "@/lib/eventStatus";
 
 const MAP_TILES =
   "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
@@ -20,7 +21,7 @@ const MAP_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function eventStatus(event: EventSummary): MarkerStatus {
-  return (event.artistCount ?? 0) > 0 ? "finalized" : "planning";
+  return eventMarkerStatus(event);
 }
 
 function formatDate(dateStr: string): string {
@@ -178,6 +179,12 @@ interface MapViewProps {
   refitToken: number;
   isRefreshing?: boolean;
   viewZoom?: number;
+  highlightEventIds?: Set<number>;
+  bypassViewportFilter?: boolean;
+  artistMode?: boolean;
+  onMessageOrganizer?: (event: EventSummary) => void;
+  onViewEvent?: (event: EventSummary) => void;
+  fixedSidebarItems?: number;
 }
 
 export default function MapView({
@@ -195,6 +202,12 @@ export default function MapView({
   refitToken,
   isRefreshing = false,
   viewZoom = 12,
+  highlightEventIds,
+  bypassViewportFilter = false,
+  artistMode = false,
+  onMessageOrganizer,
+  onViewEvent,
+  fixedSidebarItems,
 }: MapViewProps) {
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [visibleOnScreen, setVisibleOnScreen] = useState<EventSummary[]>([]);
@@ -205,6 +218,13 @@ export default function MapView({
 
   const sortedSidebar = useMemo(() => {
     const [lat, lng] = viewCenter;
+    if (bypassViewportFilter) {
+      return sortByDistance(
+        sidebarEvents.filter((e) => e.venue?.lat != null && e.venue?.lng != null),
+        lat,
+        lng,
+      );
+    }
     if (mapExplored) {
       const pivot = centerRef.current;
       const sortLat = pivot?.lat ?? lat;
@@ -216,7 +236,7 @@ export default function MapView({
       lat,
       lng,
     );
-  }, [mapExplored, visibleOnScreen, sidebarEvents, viewCenter]);
+  }, [mapExplored, bypassViewportFilter, visibleOnScreen, sidebarEvents, viewCenter]);
 
   useEffect(() => {
     onSidebarCountChange?.(sortedSidebar.length);
@@ -247,19 +267,20 @@ export default function MapView({
   }, [eventsWithCoords]);
 
   const showRadiusCircle = !mapExplored;
+  const theme = artistMode ? "artist" : "fan";
 
   return (
-    <div className="fan-map-stage flex h-full min-h-0 gap-3">
-      <div className="fan-map-column flex flex-1 flex-col min-h-0 min-w-0 gap-2">
+    <div className={`${theme}-map-stage flex h-full min-h-0 gap-3`}>
+      <div className={`${theme}-map-column flex flex-1 flex-col min-h-0 min-w-0 gap-2`}>
         {header}
-        <div className="fan-map-shell flex-1 relative min-h-0">
+        <div className={`${theme}-map-shell flex-1 relative min-h-0`}>
           <MapContainer
             center={mapCenter}
             zoom={viewZoom}
             zoomControl={false}
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%" }}
-            className={`fan-map-container${isRefreshing ? " fan-map-container--refreshing" : ""}`}
+            className={`${theme}-map-container${isRefreshing ? ` ${theme}-map-container--refreshing` : ""}`}
           >
             <ZoomControl position="bottomright" />
             <TileLayer attribution={MAP_ATTRIBUTION} url={MAP_TILES} />
@@ -278,14 +299,25 @@ export default function MapView({
               <Circle
                 center={viewCenter}
                 radius={radiusKm * 1000}
-                pathOptions={{
-                  color: "hsl(160 55% 45%)",
-                  weight: 2,
-                  opacity: 0.85,
-                  fillColor: "hsl(160 55% 42%)",
-                  fillOpacity: 0.12,
-                  dashArray: "7 5",
-                }}
+                pathOptions={
+                  artistMode
+                    ? {
+                        color: "hsl(45 93% 47%)",
+                        weight: 2,
+                        opacity: 0.85,
+                        fillColor: "hsl(45 80% 42%)",
+                        fillOpacity: 0.1,
+                        dashArray: "7 5",
+                      }
+                    : {
+                        color: "hsl(160 55% 45%)",
+                        weight: 2,
+                        opacity: 0.85,
+                        fillColor: "hsl(160 55% 42%)",
+                        fillOpacity: 0.12,
+                        dashArray: "7 5",
+                      }
+                }
               />
             )}
             {mapExplored && (
@@ -302,39 +334,42 @@ export default function MapView({
                 group={group}
                 selectedEventId={selectedEventId}
                 onSelectEvent={onSelectEvent}
+                artistMode={artistMode}
+                onMessageOrganizer={onMessageOrganizer}
+                onViewEvent={onViewEvent}
               />
             ))}
 
           </MapContainer>
 
           {isRefreshing && (
-            <div className="fan-map-refresh-overlay" aria-hidden>
-              <div className="fan-map-refresh-shimmer" />
+            <div className={`${theme}-map-refresh-overlay`} aria-hidden>
+              <div className={`${theme}-map-refresh-shimmer`} />
             </div>
           )}
 
           {mapExplored && (
             <button
               type="button"
-              className="fan-return-view"
+              className={`${theme}-return-view`}
               onClick={onReturnToView}
             >
               Return to view
             </button>
           )}
 
-          <div className="fan-map-legend absolute bottom-4 left-3 z-[400] pointer-events-none">
+          <div className={`${theme}-map-legend absolute bottom-4 left-3 z-[400] pointer-events-none`}>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
               <div className="flex items-center gap-2">
-                <span className="fan-legend-dot fan-legend-dot--planning" aria-hidden />
+                <span className={`${theme}-legend-dot ${theme}-legend-dot--planning`} aria-hidden />
                 <span className="text-foreground/80">Planning</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="fan-legend-dot fan-legend-dot--finalized" aria-hidden />
+                <span className={`${theme}-legend-dot ${theme}-legend-dot--finalized`} aria-hidden />
                 <span className="text-foreground/80">Finalized</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="fan-legend-cluster-sample" aria-hidden>
+                <span className={`${theme}-legend-cluster-sample`} aria-hidden>
                   3
                 </span>
                 <span className="text-foreground/80">Several gigs (tap for list)</span>
@@ -345,16 +380,16 @@ export default function MapView({
         </div>
       </div>
 
-      <div className="fan-side-panel shrink-0 flex flex-col min-h-0">
-        <div className="fan-side-panel-header px-4 py-3 shrink-0">
-          <h2 className="font-semibold text-sm text-foreground">Events nearby</h2>
-          <p className="fan-side-panel-subtitle text-xs mt-0.5">
+      <div className={`${theme}-side-panel shrink-0 flex flex-col min-h-0 ${fixedSidebarItems ? `${theme}-side-panel--fixed` : ""}`}>
+        <div className={`${theme}-side-panel-header px-4 py-3 shrink-0`}>
+          <h2 className="font-semibold text-sm text-foreground">{artistMode ? "Gigs nearby" : "Events nearby"}</h2>
+          <p className={`${theme}-side-panel-subtitle text-xs mt-0.5`}>
             {mapExplored
               ? `${sortedSidebar.length} on screen (browsing)`
               : `${sortedSidebar.length} within ${radiusKm} km`}
           </p>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+        <div className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-2 ${fixedSidebarItems ? `${theme}-side-panel-list--fixed` : ""}`}>
           {sortedSidebar.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <span className="text-3xl mb-2 block opacity-80">🗺️</span>
@@ -369,38 +404,57 @@ export default function MapView({
             sortedSidebar.map((event) => {
               const isSelected = selectedEventId === event.id;
               const finalized = eventStatus(event) === "finalized";
+              const isHighlighted = highlightEventIds?.has(event.id);
               return (
-                <button
+                <div
                   key={event.id}
-                  type="button"
-                  onClick={() => handleListClick(event)}
-                  className={`fan-event-card w-full text-left rounded-xl border p-3 transition-all ${
-                    isSelected ? "fan-event-card--selected" : ""
-                  }`}
+                  className={`${theme}-event-card rounded-xl border transition-all ${
+                    isSelected ? `${theme}-event-card--selected` : ""
+                  } ${isHighlighted ? `${theme}-event-card--highlight` : ""}`}
                 >
-                  <div className="flex items-start gap-2.5">
-                    <span
-                      className={`fan-event-status-dot shrink-0 ${
-                        finalized
-                          ? "fan-event-status-dot--finalized"
-                          : "fan-event-status-dot--planning"
-                      }`}
-                      aria-hidden
-                    >
-                      {finalized ? "♪" : "!"}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm leading-tight truncate">{event.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {event.venue?.name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                        {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
-                        {event.durationMinutes ? ` · ${event.durationMinutes} min` : ""}
-                      </p>
+                  <button
+                    type="button"
+                    onClick={() => (onViewEvent ? onViewEvent(event) : handleListClick(event))}
+                    className="w-full text-left p-3"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`${theme}-event-status-dot shrink-0 ${
+                          finalized
+                            ? `${theme}-event-status-dot--finalized`
+                            : `${theme}-event-status-dot--planning`
+                        }`}
+                        aria-hidden
+                      >
+                        {finalized ? "♪" : "!"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm leading-tight truncate">{event.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {event.venue?.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/80 mt-0.5">
+                          {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
+                          {event.durationMinutes ? ` · ${event.durationMinutes} min` : ""}
+                        </p>
+                        {event.genres && event.genres.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">{event.genres.join(" · ")}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  {artistMode && canMessageOrganizer(event) && onMessageOrganizer && (
+                    <div className="px-3 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => onMessageOrganizer(event)}
+                        className={`${theme}-event-card-action ${theme}-event-card-action--secondary w-full`}
+                      >
+                        Message organizer
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })
           )}

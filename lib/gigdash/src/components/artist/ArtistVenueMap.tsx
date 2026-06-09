@@ -392,7 +392,6 @@ function MarkerWrapper({
   const icon = useMemo(() => createVenueMarkerIcon(isSelected), [isSelected]);
 
   return (
-    // @ts-expect-error - leaflet types for children
     <Marker
       position={[venue.lat, venue.lng]}
       icon={icon}

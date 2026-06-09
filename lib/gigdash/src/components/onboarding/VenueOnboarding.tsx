@@ -4,6 +4,7 @@ import type { GeoPlace } from "@workspace/api-client-react";
 import LocationSearch from "@/components/LocationSearch";
 import StepIndicator from "./StepIndicator";
 import CustomTagInput from "./CustomTagInput";
+import { isStorageConfigured, uploadFiles } from "@/lib/storage";
 
 const MOODS = [
   "Formal", "Informal", "Bar", "Lounge", "Outdoor", "Intimate",
@@ -49,7 +50,8 @@ export default function VenueOnboarding() {
   const [description, setDescription] = useState("");
   const [size, setSize] = useState("");
   const [moods, setMoods] = useState<string[]>([]);
-  const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
@@ -66,6 +68,16 @@ export default function VenueOnboarding() {
     setSaving(true);
     setError(null);
     try {
+      let imageUrls: string[] | undefined;
+      if (imageFiles.length > 0) {
+        const storageReady = await isStorageConfigured();
+        if (!storageReady) {
+          setError("Photo storage is not configured. Skip photos for now or set up Appwrite storage.");
+          return;
+        }
+        imageUrls = await uploadFiles(imageFiles, "venue");
+      }
+
       const res = await fetch("/api/venues/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +90,7 @@ export default function VenueOnboarding() {
           description: description || undefined,
           size: size || undefined,
           moods,
+          imageUrls,
         }),
       });
       if (!res.ok) {
@@ -95,10 +108,15 @@ export default function VenueOnboarding() {
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    files.forEach((file) => {
-      const url = URL.createObjectURL(file);
-      setImages((prev) => [...prev, url]);
-    });
+    if (files.length === 0) return;
+    setImageFiles((prev) => [...prev, ...files]);
+    setImagePreviews((prev) => [...prev, ...files.map((file) => URL.createObjectURL(file))]);
+    e.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -247,14 +265,14 @@ export default function VenueOnboarding() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
 
-          {images.length > 0 && (
+          {imagePreviews.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
-              {images.map((src, i) => (
+              {imagePreviews.map((src, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border">
                   <img src={src} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
-                    onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                    onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
                   >
                     <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3" stroke="currentColor" strokeWidth={2.5}>

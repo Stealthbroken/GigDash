@@ -12,4 +12,10 @@ export interface FanProfile {
   /** @nullable */
   location?: string | null;
   genres?: string[];
+  /** @nullable */
+  spotifyUrl?: string | null;
+  /** @nullable */
+  appleMusicUrl?: string | null;
+  /** @nullable */
+  tidalUrl?: string | null;
 }

@@ -52,8 +52,8 @@ interface AuthContextValue {
   setUser: (u: CurrentUser | null) => void;
   /** Re-fetch session from the server (call after login/signup). */
   refreshUser: () => Promise<CurrentUser | null>;
-  artistMatching: {genres: string[], comp: number};
-  setArtistMatchingPrefs: (prefs: {genres: string[], comp: number}) => void;
+  artistMatching: {genres: string[], comp: number | null};
+  setArtistMatchingPrefs: (prefs: {genres: string[], comp: number | null}) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -61,7 +61,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   setUser: () => {},
   refreshUser: async () => null,
-  artistMatching: {genres: ["Jazz", "Folk"], comp: 3},
+  artistMatching: {genres: ["Jazz", "Folk"], comp: null},
   setArtistMatchingPrefs: () => {},
 });
 
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Self-identify prefs in memory (survive navigation/"leave page", reset on refresh/"site offline")
-  const [artistMatching, setArtistMatching] = useState<{genres: string[], comp: number}>({genres: ["Jazz", "Folk"], comp: 3});
+  const [artistMatching, setArtistMatching] = useState<{genres: string[], comp: number | null}>({genres: ["Jazz", "Folk"], comp: null});
 
   // No localStorage for current user in demo (removed on refresh/"site offline")
   const setUser = (u: CurrentUser | null) => {
@@ -113,14 +113,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (acc && acc.artistMatching) {
         setArtistMatching(acc.artistMatching);
       } else {
-        setArtistMatching({genres: ["Jazz", "Folk"], comp: 3});
+        setArtistMatching({genres: ["Jazz", "Folk"], comp: null});
       }
     } else {
-      setArtistMatching({genres: ["Jazz", "Folk"], comp: 3});
+      setArtistMatching({genres: ["Jazz", "Folk"], comp: null});
     }
   }, [user?.email]);
 
-  const setArtistMatchingPrefs = (prefs: {genres: string[], comp: number}) => {
+  const setArtistMatchingPrefs = (prefs: {genres: string[], comp: number | null}) => {
     setArtistMatching(prefs);
     if (user?.email) {
       saveDemoAccount(user.email, { artistMatching: prefs });

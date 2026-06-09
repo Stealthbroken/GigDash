@@ -18,6 +18,12 @@ tags:
     description: Fan profiles
   - name: venues
     description: Venue profiles
+  - name: artists
+    description: Artist profiles
+  - name: messages
+    description: Chat messaging
+  - name: ratings
+    description: Ratings
   - name: geo
     description: Location search
 paths:
@@ -322,6 +328,16 @@ paths:
             type: string
           description: Filter by venue name or address substring
         - in: query
+          name: city
+          schema:
+            type: string
+          description: Filter by city or town name in venue address
+        - in: query
+          name: skipProximity
+          schema:
+            type: string
+          description: When "true", skip radius filter (for active search filters)
+        - in: query
           name: nearLat
           schema:
             type: number
@@ -417,6 +433,159 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event (venue owner only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventInput"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not the venue owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /events/{id}/outreach:
+    get:
+      operationId: listEventOutreach
+      tags: [events]
+      summary: List artist outreach for an event (venue owner only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Outreach list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventOutreachList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not the venue owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: upsertEventOutreach
+      tags: [events]
+      summary: Add or update artist outreach for an event (venue owner only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertEventOutreachInput"
+      responses:
+        "200":
+          description: Updated outreach entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventOutreachEntry"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not the venue owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /events/{id}/artists/{artistId}:
+    delete:
+      operationId: removeEventArtist
+      tags: [events]
+      summary: Remove a confirmed artist from the event lineup (venue owner only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Artist removed from lineup
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not the venue owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /fans/me:
     get:
@@ -503,6 +672,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /fans/me/follow/{artistId}:
+    post:
+      operationId: followArtist
+      tags: [fans]
+      summary: Follow an artist
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Now following
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: unfollowArtist
+      tags: [fans]
+      summary: Unfollow an artist
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Unfollowed
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /fans/me/followed-venues:
+    get:
+      operationId: listFollowedVenues
+      tags: [fans]
+      summary: List venues the current fan follows
+      responses:
+        "200":
+          description: Followed venues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowedVenueList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /fans/me/follow-venue/{venueId}:
+    post:
+      operationId: followVenue
+      tags: [fans]
+      summary: Follow a venue
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Now following
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: unfollowVenue
+      tags: [fans]
+      summary: Unfollow a venue
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Unfollowed
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /fans/me/rating-summary:
+    get:
+      operationId: getFanRatingSummary
+      tags: [fans]
+      summary: Get fan's most recent rating activity summary
+      responses:
+        "200":
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingSummary"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /fans/{id}:
     get:
       operationId: getFan
@@ -528,7 +815,95 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /artists:
+    get:
+      operationId: listArtists
+      tags: [artists]
+      summary: Search artists
+      parameters:
+        - in: query
+          name: genre
+          schema:
+            type: string
+        - in: query
+          name: minRate
+          schema:
+            type: integer
+        - in: query
+          name: maxRate
+          schema:
+            type: integer
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: eventDate
+          schema:
+            type: string
+            format: date-time
+          description: Filter to artists available on this date (not blocked)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artist search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistList"
+
+  /artists/{id}:
+    get:
+      operationId: getArtist
+      tags: [artists]
+      summary: Get public artist profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistPublicProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /artists/me:
+    get:
+      operationId: getArtistMe
+      tags: [artists]
+      summary: Get current artist public profile
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistPublicProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     patch:
       operationId: updateArtistMe
       tags: [artists]
@@ -564,6 +939,340 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  /artists/me/gigs:
+    get:
+      operationId: listArtistGigs
+      tags: [artists]
+      summary: List upcoming gigs for the current artist (confirmed lineup + pending invites)
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Upcoming gigs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistGigList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /artists/me/blocked-dates:
+    get:
+      operationId: listBlockedDates
+      tags: [artists]
+      summary: List blocked availability dates
+      responses:
+        "200":
+          description: Blocked dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedDateList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: addBlockedDate
+      tags: [artists]
+      summary: Block a date from availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddBlockedDateInput"
+      responses:
+        "201":
+          description: Date blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddBlockedDateResult"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /artists/me/blocked-dates/{date}:
+    delete:
+      operationId: removeBlockedDate
+      tags: [artists]
+      summary: Remove a blocked date
+      parameters:
+        - in: path
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "204":
+          description: Removed
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /messages/conversations:
+    get:
+      operationId: listConversations
+      tags: [messages]
+      summary: List chat conversations
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      operationId: startConversation
+      tags: [messages]
+      summary: Start a conversation by username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartConversationInput"
+      responses:
+        "201":
+          description: Conversation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationStarted"
+
+  /messages/conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [messages]
+      summary: Get conversation messages
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationDetail"
+    post:
+      operationId: sendMessage
+      tags: [messages]
+      summary: Send a message
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+    delete:
+      operationId: closeConversation
+      tags: [messages]
+      summary: Close a conversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Closed
+
+  /messages/conversations/{conversationId}/gig-invites:
+    get:
+      operationId: listConversationGigInvites
+      tags: [messages]
+      summary: List pending gig invites in this conversation (artist only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pending gig invites from this venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GigInviteList"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not an artist or not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /messages/conversations/{conversationId}/gig-invites/{outreachId}/respond:
+    post:
+      operationId: respondToGigInvite
+      tags: [messages]
+      summary: Accept or decline a gig invite (artist only)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: outreachId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondToGigInviteInput"
+      responses:
+        "200":
+          description: Updated outreach entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventOutreachEntry"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Invite not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /messages/users/search:
+    get:
+      operationId: searchChatUsers
+      tags: [messages]
+      summary: Search users to start a chat
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatUserSearchList"
+
+  /ratings:
+    post:
+      operationId: createRating
+      tags: [ratings]
+      summary: Rate an artist or venue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRatingInput"
+      responses:
+        "201":
+          description: Rating created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingCreated"
+        "429":
+          description: Cooldown active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /ratings/{targetType}/{targetId}:
+    get:
+      operationId: getRatingSummary
+      tags: [ratings]
+      summary: Get average rating for target
+      parameters:
+        - in: path
+          name: targetType
+          required: true
+          schema:
+            type: string
+            enum: [artist, venue]
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingSummary"
 
   /venues/me:
     get:
@@ -841,6 +1550,9 @@ components:
           type: ["number", "null"]
         lng:
           type: ["number", "null"]
+        ownerUsername:
+          type: string
+          description: Venue account username (for artist messaging)
 
     ArtistSummary:
       type: object
@@ -941,8 +1653,140 @@ components:
           type: string
         artistCount:
           type: integer
+        artistIds:
+          type: array
+          items:
+            type: integer
+          description: IDs of confirmed performing artists
         venue:
           $ref: "#/components/schemas/Venue"
+
+    UpdateEventInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        description:
+          type: ["string", "null"]
+        artistRequirements:
+          type: ["string", "null"]
+        imageUrls:
+          type: array
+          items:
+            type: string
+        genres:
+          type: array
+          items:
+            type: string
+        isPaid:
+          type: boolean
+        payAmount:
+          type: ["string", "null"]
+        isCompetition:
+          type: boolean
+        competitionLevel:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 5
+        eventDate:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: ["integer", "null"]
+          minimum: 15
+        status:
+          type: string
+          enum: [upcoming, finalized]
+          description: upcoming = planning; finalized = venue locked lineup for fans
+
+    EventOutreachEntry:
+      type: object
+      required: [id, artistId, displayName, status]
+      properties:
+        id:
+          type: integer
+        artistId:
+          type: integer
+        displayName:
+          type: string
+        username:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [contacted, pending, confirmed, declined]
+        notes:
+          type: ["string", "null"]
+        eventId:
+          type: integer
+        eventTitle:
+          type: string
+        eventDate:
+          type: string
+          format: date-time
+
+    EventOutreachList:
+      type: object
+      required: [outreach]
+      properties:
+        outreach:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventOutreachEntry"
+
+    UpsertEventOutreachInput:
+      type: object
+      required: [artistId, status]
+      properties:
+        artistId:
+          type: integer
+        status:
+          type: string
+          enum: [contacted, pending, confirmed, declined]
+        notes:
+          type: ["string", "null"]
+
+    GigInviteList:
+      type: object
+      required: [invites]
+      properties:
+        invites:
+          type: array
+          items:
+            $ref: "#/components/schemas/GigInvite"
+
+    GigInvite:
+      type: object
+      required: [outreachId, eventId, eventTitle, eventDate, venueId, venueName, status]
+      properties:
+        outreachId:
+          type: integer
+        eventId:
+          type: integer
+        eventTitle:
+          type: string
+        eventDate:
+          type: string
+          format: date-time
+        venueId:
+          type: integer
+        venueName:
+          type: string
+        status:
+          type: string
+          enum: [pending]
+
+    RespondToGigInviteInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [accept, decline]
 
     EventDetail:
       type: object
@@ -1015,6 +1859,12 @@ components:
           type: array
           items:
             type: string
+        spotifyUrl:
+          type: string
+        appleMusicUrl:
+          type: string
+        tidalUrl:
+          type: string
 
     ArtistOnboardingInput:
       type: object
@@ -1067,6 +1917,10 @@ components:
           type: array
           items:
             type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
 
     ArtistProfile:
       type: object
@@ -1105,12 +1959,13 @@ components:
           type: array
           items:
             type: string
+        spotifyUrl:
+          type: ["string", "null"]
+        appleMusicUrl:
+          type: ["string", "null"]
+        tidalUrl:
+          type: ["string", "null"]
 
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: connect.sid
     FollowedArtistRecentGig:
       type: object
       required: [eventId, title, venueName, venueAddress, eventDate, status]
@@ -1156,4 +2011,359 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FollowedArtistSummary"
+
+    FollowedVenueSummary:
+      type: object
+      required: [id, name, address]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: ["string", "null"]
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
+
+    FollowedVenueList:
+      type: object
+      required: [venues]
+      properties:
+        venues:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowedVenueSummary"
+
+    ArtistSearchResult:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        vibes:
+          type: array
+          items:
+            type: string
+        spotifyUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        rateTier:
+          type: ["integer", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        username:
+          type: string
+
+    ArtistList:
+      type: object
+      required: [artists]
+      properties:
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSearchResult"
+
+    ArtistGigSummary:
+      type: object
+      required: [eventId, title, eventDate, eventStatus, gigStatus, venue]
+      properties:
+        eventId:
+          type: integer
+        outreachId:
+          type: ["integer", "null"]
+          description: Set when gigStatus is pending (for chat accept flow)
+        title:
+          type: string
+        eventDate:
+          type: string
+          format: date-time
+        eventStatus:
+          type: string
+          description: Event planning state (upcoming or finalized)
+        gigStatus:
+          type: string
+          enum: [confirmed, pending]
+        venue:
+          type: object
+          required: [id, name, address]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            address:
+              type: string
+            ownerUsername:
+              type: string
+
+    ArtistGigList:
+      type: object
+      required: [gigs]
+      properties:
+        gigs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistGigSummary"
+
+    VenuePlayedSummary:
+      type: object
+      required: [id, name, address]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+
+    ArtistPublicProfile:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: integer
+        displayName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        vibes:
+          type: array
+          items:
+            type: string
+        spotifyUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        rateTier:
+          type: ["integer", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        followerCount:
+          type: integer
+        venuesPlayed:
+          type: array
+          items:
+            $ref: "#/components/schemas/VenuePlayedSummary"
+        ratingAverage:
+          type: number
+        ratingCount:
+          type: integer
+
+    BlockedDateList:
+      type: object
+      required: [dates]
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    AddBlockedDateInput:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          format: date
+
+    AddBlockedDateResult:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          format: date
+
+    ChatUser:
+      type: object
+      required: [id, username, displayName, role]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        profileId:
+          type: ["integer", "null"]
+          description: Public profile id (venue id or artist id)
+
+    ChatUserSearchList:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatUser"
+
+    Message:
+      type: object
+      required: [id, senderUserId, createdAt]
+      properties:
+        id:
+          type: integer
+        senderUserId:
+          type: integer
+        body:
+          type: ["string", "null"]
+        attachmentUrl:
+          type: ["string", "null"]
+        attachmentType:
+          type: ["string", "null"]
+        attachmentName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    ConversationSummary:
+      type: object
+      required: [id, otherUser, updatedAt]
+      properties:
+        id:
+          type: integer
+        otherUser:
+          $ref: "#/components/schemas/ChatUser"
+        lastMessage:
+          type: ["object", "null"]
+          properties:
+            body:
+              type: ["string", "null"]
+            attachmentType:
+              type: ["string", "null"]
+            createdAt:
+              type: string
+              format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationList:
+      type: object
+      required: [conversations]
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationSummary"
+
+    ConversationDetail:
+      type: object
+      required: [id, messages]
+      properties:
+        id:
+          type: integer
+        otherUser:
+          oneOf:
+            - $ref: "#/components/schemas/ChatUser"
+            - type: "null"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+
+    ConversationStarted:
+      type: object
+      required: [id, otherUser]
+      properties:
+        id:
+          type: integer
+        otherUser:
+          $ref: "#/components/schemas/ChatUser"
+
+    StartConversationInput:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+
+    SendMessageInput:
+      type: object
+      properties:
+        body:
+          type: string
+        attachmentUrl:
+          type: string
+        attachmentType:
+          type: string
+          enum: [image, file]
+        attachmentName:
+          type: string
+
+    CreateRatingInput:
+      type: object
+      required: [targetType, targetId, score]
+      properties:
+        targetType:
+          type: string
+          enum: [artist, venue]
+        targetId:
+          type: integer
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+
+    RatingCreated:
+      type: object
+      required: [id, targetType, targetId, score, createdAt]
+      properties:
+        id:
+          type: integer
+        targetType:
+          type: string
+        targetId:
+          type: integer
+        score:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    RatingSummary:
+      type: object
+      required: [average, count]
+      properties:
+        targetType:
+          type: string
+        targetId:
+          type: integer
+        average:
+          type: number
+        count:
+          type: integer
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
 

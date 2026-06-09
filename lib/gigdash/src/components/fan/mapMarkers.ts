@@ -7,6 +7,11 @@ const COLORS = {
   finalized: "#10b981",
 } as const;
 
+const ARTIST_COLORS = {
+  planning: "#ef4444",
+  finalized: "#f59e0b",
+} as const;
+
 export const VENUE_MARKER_COLOR = "#f59e0b"; // amber for artist venue search markers
 
 function svgDataUri(svg: string): string {
@@ -25,12 +30,12 @@ function getCachedIcon(key: string, factory: () => L.Icon): L.Icon {
 }
 
 /** Single gig — red or green pin with ! or ♪ (no highlight ring; use multi popup ring only) */
-export function createSingleEventMarkerIcon(status: MarkerStatus): L.Icon {
-  const fill = COLORS[status];
+export function createSingleEventMarkerIcon(status: MarkerStatus, artistMode = false): L.Icon {
+  const fill = artistMode ? ARTIST_COLORS[status] : COLORS[status];
   const symbol = status === "finalized" ? "♪" : "!";
   const w = 34;
   const h = 42;
-  const key = `single-${status}`;
+  const key = `single-${status}-${artistMode ? "artist" : "fan"}`;
 
   return getCachedIcon(key, () => {
     const svg = `

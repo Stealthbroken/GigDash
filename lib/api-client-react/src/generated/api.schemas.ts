@@ -126,6 +126,8 @@ export interface Venue {
   lat?: number | null;
   /** @nullable */
   lng?: number | null;
+  /** Venue account username (for artist messaging) */
+  ownerUsername?: string;
 }
 
 export interface ArtistSummary {
@@ -200,7 +202,127 @@ export interface EventSummary {
   durationMinutes?: number | null;
   status?: string;
   artistCount?: number;
+  /** IDs of confirmed performing artists */
+  artistIds?: number[];
   venue: Venue;
+}
+
+/**
+ * upcoming = planning; finalized = venue locked lineup for fans
+ */
+export type UpdateEventInputStatus = typeof UpdateEventInputStatus[keyof typeof UpdateEventInputStatus];
+
+
+export const UpdateEventInputStatus = {
+  upcoming: 'upcoming',
+  finalized: 'finalized',
+} as const;
+
+export interface UpdateEventInput {
+  /** @maxLength 100 */
+  title?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  artistRequirements?: string | null;
+  imageUrls?: string[];
+  genres?: string[];
+  isPaid?: boolean;
+  /** @nullable */
+  payAmount?: string | null;
+  isCompetition?: boolean;
+  /**
+     * @minimum 1
+     * @maximum 5
+     * @nullable
+     */
+  competitionLevel?: number | null;
+  eventDate?: string;
+  /**
+     * @minimum 15
+     * @nullable
+     */
+  durationMinutes?: number | null;
+  /** upcoming = planning; finalized = venue locked lineup for fans */
+  status?: UpdateEventInputStatus;
+}
+
+export type EventOutreachEntryStatus = typeof EventOutreachEntryStatus[keyof typeof EventOutreachEntryStatus];
+
+
+export const EventOutreachEntryStatus = {
+  contacted: 'contacted',
+  pending: 'pending',
+  confirmed: 'confirmed',
+  declined: 'declined',
+} as const;
+
+export interface EventOutreachEntry {
+  id: number;
+  artistId: number;
+  displayName: string;
+  username?: string;
+  genres?: string[];
+  status: EventOutreachEntryStatus;
+  /** @nullable */
+  notes?: string | null;
+  eventId?: number;
+  eventTitle?: string;
+  eventDate?: string;
+}
+
+export interface EventOutreachList {
+  outreach: EventOutreachEntry[];
+}
+
+export type UpsertEventOutreachInputStatus = typeof UpsertEventOutreachInputStatus[keyof typeof UpsertEventOutreachInputStatus];
+
+
+export const UpsertEventOutreachInputStatus = {
+  contacted: 'contacted',
+  pending: 'pending',
+  confirmed: 'confirmed',
+  declined: 'declined',
+} as const;
+
+export interface UpsertEventOutreachInput {
+  artistId: number;
+  status: UpsertEventOutreachInputStatus;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type GigInviteStatus = typeof GigInviteStatus[keyof typeof GigInviteStatus];
+
+
+export const GigInviteStatus = {
+  pending: 'pending',
+} as const;
+
+export interface GigInvite {
+  outreachId: number;
+  eventId: number;
+  eventTitle: string;
+  eventDate: string;
+  venueId: number;
+  venueName: string;
+  status: GigInviteStatus;
+}
+
+export interface GigInviteList {
+  invites: GigInvite[];
+}
+
+export type RespondToGigInviteInputAction = typeof RespondToGigInviteInputAction[keyof typeof RespondToGigInviteInputAction];
+
+
+export const RespondToGigInviteInputAction = {
+  accept: 'accept',
+  decline: 'decline',
+} as const;
+
+export interface RespondToGigInviteInput {
+  action: RespondToGigInviteInputAction;
 }
 
 export interface EventDetail {
@@ -241,6 +363,9 @@ export interface FanOnboardingInput {
   avatarUrl?: string;
   location?: string;
   genres: string[];
+  spotifyUrl?: string;
+  appleMusicUrl?: string;
+  tidalUrl?: string;
 }
 
 export interface ArtistOnboardingInput {
@@ -275,6 +400,7 @@ export interface VenueOnboardingInput {
   description?: string;
   size?: string;
   moods: string[];
+  imageUrls?: string[];
 }
 
 export interface ArtistProfile {
@@ -296,6 +422,12 @@ export interface FanProfile {
   /** @nullable */
   location?: string | null;
   genres?: string[];
+  /** @nullable */
+  spotifyUrl?: string | null;
+  /** @nullable */
+  appleMusicUrl?: string | null;
+  /** @nullable */
+  tidalUrl?: string | null;
 }
 
 export interface FollowedArtistRecentGig {
@@ -320,6 +452,238 @@ export interface FollowedArtistList {
   artists: FollowedArtistSummary[];
 }
 
+export interface FollowedVenueSummary {
+  id: number;
+  name: string;
+  address: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
+}
+
+export interface FollowedVenueList {
+  venues: FollowedVenueSummary[];
+}
+
+export interface ArtistSearchResult {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  bio?: string | null;
+  genres?: string[];
+  vibes?: string[];
+  /** @nullable */
+  spotifyUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  rateTier?: number | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  username?: string;
+}
+
+export interface ArtistList {
+  artists: ArtistSearchResult[];
+}
+
+export type ArtistGigSummaryGigStatus = typeof ArtistGigSummaryGigStatus[keyof typeof ArtistGigSummaryGigStatus];
+
+
+export const ArtistGigSummaryGigStatus = {
+  confirmed: 'confirmed',
+  pending: 'pending',
+} as const;
+
+export type ArtistGigSummaryVenue = {
+  id: number;
+  name: string;
+  address: string;
+  ownerUsername?: string;
+};
+
+export interface ArtistGigSummary {
+  eventId: number;
+  /**
+     * Set when gigStatus is pending (for chat accept flow)
+     * @nullable
+     */
+  outreachId?: number | null;
+  title: string;
+  eventDate: string;
+  /** Event planning state (upcoming or finalized) */
+  eventStatus: string;
+  gigStatus: ArtistGigSummaryGigStatus;
+  venue: ArtistGigSummaryVenue;
+}
+
+export interface ArtistGigList {
+  gigs: ArtistGigSummary[];
+}
+
+export interface VenuePlayedSummary {
+  id: number;
+  name: string;
+  address: string;
+}
+
+export interface ArtistPublicProfile {
+  id: number;
+  displayName: string;
+  /** @nullable */
+  bio?: string | null;
+  genres?: string[];
+  vibes?: string[];
+  /** @nullable */
+  spotifyUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  rateTier?: number | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  followerCount?: number;
+  venuesPlayed?: VenuePlayedSummary[];
+  ratingAverage?: number;
+  ratingCount?: number;
+}
+
+export interface BlockedDateList {
+  dates: string[];
+}
+
+export interface AddBlockedDateInput {
+  date: string;
+}
+
+export interface AddBlockedDateResult {
+  date: string;
+}
+
+export interface ChatUser {
+  id: number;
+  username: string;
+  displayName: string;
+  role: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /**
+     * Public profile id (venue id or artist id)
+     * @nullable
+     */
+  profileId?: number | null;
+}
+
+export interface ChatUserSearchList {
+  users: ChatUser[];
+}
+
+export interface Message {
+  id: number;
+  senderUserId: number;
+  /** @nullable */
+  body?: string | null;
+  /** @nullable */
+  attachmentUrl?: string | null;
+  /** @nullable */
+  attachmentType?: string | null;
+  /** @nullable */
+  attachmentName?: string | null;
+  createdAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type ConversationSummaryLastMessage = {
+  /** @nullable */
+  body?: string | null;
+  /** @nullable */
+  attachmentType?: string | null;
+  createdAt?: string;
+} | null;
+
+export interface ConversationSummary {
+  id: number;
+  otherUser: ChatUser;
+  /** @nullable */
+  lastMessage?: ConversationSummaryLastMessage;
+  updatedAt: string;
+}
+
+export interface ConversationList {
+  conversations: ConversationSummary[];
+}
+
+export interface ConversationDetail {
+  id: number;
+  otherUser?: ChatUser | null;
+  messages: Message[];
+}
+
+export interface ConversationStarted {
+  id: number;
+  otherUser: ChatUser;
+}
+
+export interface StartConversationInput {
+  username: string;
+}
+
+export type SendMessageInputAttachmentType = typeof SendMessageInputAttachmentType[keyof typeof SendMessageInputAttachmentType];
+
+
+export const SendMessageInputAttachmentType = {
+  image: 'image',
+  file: 'file',
+} as const;
+
+export interface SendMessageInput {
+  body?: string;
+  attachmentUrl?: string;
+  attachmentType?: SendMessageInputAttachmentType;
+  attachmentName?: string;
+}
+
+export type CreateRatingInputTargetType = typeof CreateRatingInputTargetType[keyof typeof CreateRatingInputTargetType];
+
+
+export const CreateRatingInputTargetType = {
+  artist: 'artist',
+  venue: 'venue',
+} as const;
+
+export interface CreateRatingInput {
+  targetType: CreateRatingInputTargetType;
+  targetId: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  score: number;
+  comment?: string;
+}
+
+export interface RatingCreated {
+  id: number;
+  targetType: string;
+  targetId: number;
+  score: number;
+  /** @nullable */
+  comment?: string | null;
+  createdAt: string;
+}
+
+export interface RatingSummary {
+  targetType?: string;
+  targetId?: number;
+  average: number;
+  count: number;
+}
+
 export type SearchGeoPlacesParams = {
 /**
  * @minLength 2
@@ -333,6 +697,14 @@ genre?: string;
  * Filter by venue name or address substring
  */
 location?: string;
+/**
+ * Filter by city or town name in venue address
+ */
+city?: string;
+/**
+ * When "true", skip radius filter (for active search filters)
+ */
+skipProximity?: string;
 /**
  * Center latitude for proximity filter
  */
@@ -348,5 +720,21 @@ radiusKm?: number;
 artistName?: string;
 limit?: number;
 offset?: number;
+};
+
+export type ListArtistsParams = {
+genre?: string;
+minRate?: number;
+maxRate?: number;
+q?: string;
+/**
+ * Filter to artists available on this date (not blocked)
+ */
+eventDate?: string;
+limit?: number;
+};
+
+export type SearchChatUsersParams = {
+q: string;
 };
 

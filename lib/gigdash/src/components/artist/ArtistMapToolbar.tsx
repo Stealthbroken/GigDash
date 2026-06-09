@@ -20,6 +20,8 @@ interface ArtistMapToolbarProps {
   venueCount: number;
   isUpdating: boolean;
   mapExplored?: boolean;
+  showFinalized?: boolean;
+  onShowFinalizedChange?: (value: boolean) => void;
 }
 
 export default function ArtistMapToolbar({
@@ -34,6 +36,8 @@ export default function ArtistMapToolbar({
   venueCount,
   isUpdating,
   mapExplored = false,
+  showFinalized = false,
+  onShowFinalizedChange,
 }: ArtistMapToolbarProps) {
   const placeShort =
     viewPlace?.label.split(",").slice(0, 2).join(",").trim() ?? "this area";
@@ -145,6 +149,19 @@ export default function ArtistMapToolbar({
           )}
         </div>
 
+        {onShowFinalizedChange && (
+          <button
+            type="button"
+            onClick={() => onShowFinalizedChange(!showFinalized)}
+            className={`artist-finalized-toggle shrink-0 px-3 py-1 rounded-full border text-[10px] font-semibold ${
+              showFinalized
+                ? "artist-finalized-toggle--on"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {showFinalized ? "♪ Showing finalized" : "Hide finalized gigs"}
+          </button>
+        )}
         <div className="artist-map-toolbar__hint-inline">
           {viewPlace && (
             <span>

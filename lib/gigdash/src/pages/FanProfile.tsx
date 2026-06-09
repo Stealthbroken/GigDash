@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { MessageCircle, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import {
   useGetFanMe,
   useListFollowedArtists,
@@ -29,13 +29,8 @@ function artistInitials(name: string): string {
     .toUpperCase();
 }
 
-function FollowedArtistRow({
-  artist,
-  onChat,
-}: {
-  artist: FollowedArtistSummary;
-  onChat: (artistId: number) => void;
-}) {
+function FollowedArtistRow({ artist }: { artist: FollowedArtistSummary }) {
+  const [, navigate] = useLocation();
   const gig = artist.recentGig;
 
   return (
@@ -48,22 +43,16 @@ function FollowedArtistRow({
       </Avatar>
 
       <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h3 className="font-semibold text-base leading-tight">{artist.displayName}</h3>
-            {artist.genres && artist.genres.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-0.5">{artist.genres.join(" · ")}</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => onChat(artist.id)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shrink-0"
-          >
-            <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-            Chat
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate(`/artist/profile/${artist.id}`)}
+          className="text-left w-full"
+        >
+          <h3 className="font-semibold text-base leading-tight hover:underline">{artist.displayName}</h3>
+          {artist.genres && artist.genres.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5">{artist.genres.join(" · ")}</p>
+          )}
+        </button>
 
         {gig ? (
           <div className="rounded-lg border border-border/80 bg-secondary/30 px-3 py-2.5 text-sm">
@@ -101,10 +90,6 @@ export default function FanProfile() {
   const username = settings?.username ?? user?.username ?? "";
   const initials = (fan?.displayName ?? username).slice(0, 2).toUpperCase();
   const artists = followed?.artists ?? [];
-
-  function openChat(artistId: number) {
-    navigate(`/fan/chat/${artistId}`);
-  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -155,7 +140,7 @@ export default function FanProfile() {
           <div>
             <h2 className="font-semibold text-base">Followed artists</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Tap Chat to message an artist directly.
+              Tap an artist to view their profile. Use Following only on the map to filter gigs.
             </p>
           </div>
 
@@ -181,7 +166,7 @@ export default function FanProfile() {
           ) : (
             <ul className="space-y-3">
               {artists.map((artist) => (
-                <FollowedArtistRow key={artist.id} artist={artist} onChat={openChat} />
+                <FollowedArtistRow key={artist.id} artist={artist} />
               ))}
             </ul>
           )}

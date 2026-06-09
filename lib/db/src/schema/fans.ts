@@ -9,6 +9,9 @@ export const fansTable = pgTable("fans", {
   displayName: text("display_name").notNull(),
   location: text("location"),
   genres: text("genres").array().notNull().default([]),
+  spotifyUrl: text("spotify_url"),
+  appleMusicUrl: text("apple_music_url"),
+  tidalUrl: text("tidal_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

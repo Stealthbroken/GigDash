@@ -1,16 +1,23 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
   fansTable,
   fanFollowsTable,
+  fanFollowsVenuesTable,
   artistsTable,
   usersTable,
   eventsTable,
   eventArtistsTable,
   venuesTable,
+  ratingsTable,
 } from "@workspace/db";
-import { GetFanResponse, ListFollowedArtistsResponse, UpdateFanMeBody } from "@workspace/api-zod";
+import {
+  GetFanResponse,
+  ListFollowedArtistsResponse,
+  ListFollowedVenuesResponse,
+  UpdateFanMeBody,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -19,12 +26,18 @@ function fanProfilePayload(fan: {
   displayName: string;
   location: string | null;
   genres: string[];
+  spotifyUrl?: string | null;
+  appleMusicUrl?: string | null;
+  tidalUrl?: string | null;
 }) {
   return GetFanResponse.parse({
     id: fan.id,
     displayName: fan.displayName,
     location: fan.location,
     genres: fan.genres,
+    spotifyUrl: fan.spotifyUrl ?? null,
+    appleMusicUrl: fan.appleMusicUrl ?? null,
+    tidalUrl: fan.tidalUrl ?? null,
   });
 }
 
@@ -166,7 +179,7 @@ router.patch("/fans/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const { displayName, location, genres } = parsed.data;
+  const { displayName, location, genres, spotifyUrl, appleMusicUrl, tidalUrl } = parsed.data;
 
   const [fan] = await db
     .update(fansTable)
@@ -174,6 +187,9 @@ router.patch("/fans/me", async (req, res): Promise<void> => {
       displayName,
       location: location ?? null,
       genres,
+      spotifyUrl: spotifyUrl ?? null,
+      appleMusicUrl: appleMusicUrl ?? null,
+      tidalUrl: tidalUrl ?? null,
     })
     .where(eq(fansTable.userId, userId as number))
     .returning();
@@ -185,6 +201,186 @@ router.patch("/fans/me", async (req, res): Promise<void> => {
 
   req.log.info({ userId }, "Fan profile updated");
   res.json(fanProfilePayload(fan));
+});
+
+router.post("/fans/me/follow/:artistId", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const raw = Array.isArray(req.params.artistId) ? req.params.artistId[0] : req.params.artistId;
+  const artistId = parseInt(raw, 10);
+  if (isNaN(artistId)) {
+    res.status(400).json({ error: "Invalid artist ID." });
+    return;
+  }
+
+  const fan = await getFanForUser(userId as number);
+  if (!fan) {
+    res.status(404).json({ error: "Fan profile not found." });
+    return;
+  }
+
+  const [artist] = await db
+    .select({ id: artistsTable.id })
+    .from(artistsTable)
+    .where(eq(artistsTable.id, artistId))
+    .limit(1);
+
+  if (!artist) {
+    res.status(404).json({ error: "Artist not found." });
+    return;
+  }
+
+  try {
+    await db.insert(fanFollowsTable).values({ fanId: fan.id, artistId });
+  } catch {
+    res.status(409).json({ error: "Already following this artist." });
+    return;
+  }
+
+  res.status(201).json({ ok: true });
+});
+
+router.delete("/fans/me/follow/:artistId", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const raw = Array.isArray(req.params.artistId) ? req.params.artistId[0] : req.params.artistId;
+  const artistId = parseInt(raw, 10);
+
+  const fan = await getFanForUser(userId as number);
+  if (!fan) {
+    res.status(404).json({ error: "Fan profile not found." });
+    return;
+  }
+
+  await db
+    .delete(fanFollowsTable)
+    .where(and(eq(fanFollowsTable.fanId, fan.id), eq(fanFollowsTable.artistId, artistId)));
+
+  res.status(204).send();
+});
+
+router.get("/fans/me/followed-venues", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const fan = await getFanForUser(userId as number);
+  if (!fan) {
+    res.status(404).json({ error: "Fan profile not found." });
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: venuesTable.id,
+      name: venuesTable.name,
+      address: venuesTable.address,
+      description: venuesTable.description,
+      lat: venuesTable.lat,
+      lng: venuesTable.lng,
+    })
+    .from(fanFollowsVenuesTable)
+    .innerJoin(venuesTable, eq(fanFollowsVenuesTable.venueId, venuesTable.id))
+    .where(eq(fanFollowsVenuesTable.fanId, fan.id));
+
+  res.json(ListFollowedVenuesResponse.parse({ venues: rows }));
+});
+
+router.post("/fans/me/follow-venue/:venueId", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const raw = Array.isArray(req.params.venueId) ? req.params.venueId[0] : req.params.venueId;
+  const venueId = parseInt(raw, 10);
+
+  const fan = await getFanForUser(userId as number);
+  if (!fan) {
+    res.status(404).json({ error: "Fan profile not found." });
+    return;
+  }
+
+  const [venue] = await db
+    .select({ id: venuesTable.id })
+    .from(venuesTable)
+    .where(eq(venuesTable.id, venueId))
+    .limit(1);
+
+  if (!venue) {
+    res.status(404).json({ error: "Venue not found." });
+    return;
+  }
+
+  try {
+    await db.insert(fanFollowsVenuesTable).values({ fanId: fan.id, venueId });
+  } catch {
+    res.status(409).json({ error: "Already following this venue." });
+    return;
+  }
+
+  res.status(201).json({ ok: true });
+});
+
+router.delete("/fans/me/follow-venue/:venueId", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const raw = Array.isArray(req.params.venueId) ? req.params.venueId[0] : req.params.venueId;
+  const venueId = parseInt(raw, 10);
+
+  const fan = await getFanForUser(userId as number);
+  if (!fan) {
+    res.status(404).json({ error: "Fan profile not found." });
+    return;
+  }
+
+  await db
+    .delete(fanFollowsVenuesTable)
+    .where(and(eq(fanFollowsVenuesTable.fanId, fan.id), eq(fanFollowsVenuesTable.venueId, venueId)));
+
+  res.status(204).send();
+});
+
+router.get("/fans/me/rating-summary", async (req, res): Promise<void> => {
+  const session = req.session as unknown as Record<string, unknown>;
+  const userId = session["userId"];
+  if (!userId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  const [summary] = await db
+    .select({
+      average: sql<number>`COALESCE(AVG(${ratingsTable.score}), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(ratingsTable)
+    .where(and(eq(ratingsTable.raterUserId, userId as number), eq(ratingsTable.raterRole, "fan")));
+
+  res.json({
+    average: Number(summary?.average ?? 0),
+    count: Number(summary?.count ?? 0),
+  });
 });
 
 router.get("/fans/:id", async (req, res): Promise<void> => {

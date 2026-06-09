@@ -7,6 +7,9 @@ import eventsRouter from "./events";
 import fansRouter from "./fans";
 import artistsRouter from "./artists";
 import venuesRouter from "./venues";
+import messagesRouter from "./messages";
+import ratingsRouter from "./ratings";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -18,5 +21,8 @@ router.use(eventsRouter);
 router.use(fansRouter);
 router.use(artistsRouter);
 router.use(venuesRouter);
+router.use(messagesRouter);
+router.use(ratingsRouter);
+router.use(storageRouter);
 
 export default router;

@@ -12,6 +12,7 @@ export const artistsTable = pgTable("artists", {
   vibes: text("vibes").array().notNull().default([]),
   spotifyUrl: text("spotify_url"),
   youtubeUrl: text("youtube_url"),
+  rateTier: integer("rate_tier").default(2), // 1=budget, 5=premium — for venue search filters
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -27,5 +27,7 @@ export interface EventSummary {
   durationMinutes?: number | null;
   status?: string;
   artistCount?: number;
+  /** IDs of confirmed performing artists */
+  artistIds?: number[];
   venue: Venue;
 }

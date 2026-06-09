@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, venuesTable } from "@workspace/db";
 import { UpdateVenueMeBody, UpdateVenueMeResponse } from "@workspace/api-zod";
 import { resolveVenueAddress } from "../lib/geocode";
+import { validateImageUrlList } from "../lib/account";
 
 const router: IRouter = Router();
 
@@ -54,7 +55,13 @@ router.patch("/venues/me", async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, address, description, size, moods, lat, lng } = parsed.data;
+  const { name, address, description, size, moods, lat, lng, imageUrls } = parsed.data;
+
+  const imageErr = validateImageUrlList(imageUrls, 12);
+  if (imageErr) {
+    res.status(400).json({ error: imageErr });
+    return;
+  }
 
   let place;
   try {
@@ -81,6 +88,7 @@ router.patch("/venues/me", async (req, res): Promise<void> => {
       description: description ?? null,
       size: size ?? null,
       moods,
+      imageUrls: imageUrls ?? undefined,
     })
     .where(eq(venuesTable.userId, userId as number))
     .returning();
