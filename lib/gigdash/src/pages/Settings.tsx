@@ -3,11 +3,14 @@ import { useLocation } from "wouter";
 import { artistTabUrl, useAppNavigation } from "@/lib/navigation";
 import {
   getGetAccountSettingsQueryKey,
+  getGetArtistMeQueryKey,
   useChangeAvatar,
   useChangeLocation,
   useChangePassword,
   useChangeUsername,
   useGetAccountSettings,
+  useGetArtistMe,
+  useUpdateArtistMe,
 } from "@workspace/api-client-react";
 import type { GeoPlace } from "@workspace/api-client-react";
 import LocationSearch from "@/components/LocationSearch";
@@ -100,6 +103,8 @@ export default function Settings() {
   const [bio, setBio] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [vibes, setVibes] = useState<string[]>([]);
+  const [spotifyUrl, setSpotifyUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   useEffect(() => {
     if (effectiveSettings) {
@@ -124,8 +129,36 @@ export default function Settings() {
       setBio(prof.bio || '');
       setGenres(Array.isArray(prof.genres) ? prof.genres : []);
       setVibes(Array.isArray(prof.vibes) ? prof.vibes : []);
+      setSpotifyUrl(typeof prof.spotifyUrl === "string" ? prof.spotifyUrl : "");
+      setYoutubeUrl(typeof prof.youtubeUrl === "string" ? prof.youtubeUrl : "");
     }
   }, [effectiveSettings, isDemoMode, user]);
+
+  const isArtist = user?.role === "artist";
+  const { data: artistMe } = useGetArtistMe({
+    query: { queryKey: getGetArtistMeQueryKey(), enabled: isArtist && !isDemoMode },
+  });
+
+  useEffect(() => {
+    if (!isArtist || isDemoMode || !artistMe) return;
+    setBio(artistMe.bio ?? "");
+    setGenres(artistMe.genres ?? []);
+    setVibes(artistMe.vibes ?? []);
+    setSpotifyUrl(artistMe.spotifyUrl ?? "");
+    setYoutubeUrl(artistMe.youtubeUrl ?? "");
+  }, [artistMe, isArtist, isDemoMode]);
+
+  const updateArtistMutation = useUpdateArtistMe({
+    mutation: {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: getGetArtistMeQueryKey() });
+        toast({ title: "Artist profile updated" });
+      },
+      onError: (err) => {
+        toast({ title: "Could not update profile", description: getErrorMessage(err), variant: "destructive" });
+      },
+    },
+  });
 
   const usernameMutation = useChangeUsername({
     mutation: {
@@ -335,6 +368,8 @@ export default function Settings() {
         bio: bio || undefined,
         genres,
         vibes,
+        spotifyUrl: spotifyUrl.trim() || undefined,
+        youtubeUrl: youtubeUrl.trim() || undefined,
       };
       saveDemoAccount(user.email, profileData);
       const updatedUser = { ...user, ...profileData };
@@ -342,7 +377,20 @@ export default function Settings() {
       toast({ title: "Artist profile updated (demo)" });
       return;
     }
-    toast({ title: "Artist profile editing requires backend", variant: "destructive" });
+    if (!isArtist || !artistMe) {
+      toast({ title: "Artist profile not loaded yet", variant: "destructive" });
+      return;
+    }
+    updateArtistMutation.mutate({
+      data: {
+        displayName: artistMe.displayName,
+        bio: bio || undefined,
+        genres,
+        vibes,
+        spotifyUrl: spotifyUrl.trim() || undefined,
+        youtubeUrl: youtubeUrl.trim() || undefined,
+      },
+    });
   }
 
   const initials = (effectiveSettings?.username ?? user?.username ?? "?").slice(0, 2).toUpperCase();
@@ -611,13 +659,41 @@ export default function Settings() {
                     onRemove={(tag) => setGenres((prev) => prev.filter((g) => g !== tag))}
                   />
                 </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">
+                    Spotify link
+                  </label>
+                  <input
+                    type="url"
+                    value={spotifyUrl}
+                    onChange={(e) => setSpotifyUrl(e.target.value)}
+                    placeholder="https://open.spotify.com/artist/…"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Paste any Spotify URL — artist, track, album, or playlist. We'll embed a player on your public profile.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground block mb-1.5">
+                    YouTube link
+                  </label>
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://youtube.com/@…"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
                     onClick={handleArtistProfileSave}
-                    className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors"
+                    disabled={!isDemoMode && updateArtistMutation.isPending}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border transition-colors disabled:opacity-50"
                   >
-                    Save artist profile
+                    {!isDemoMode && updateArtistMutation.isPending ? "Saving…" : "Save artist profile"}
                   </button>
                   <button
                     type="button"

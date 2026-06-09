@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useAppNavigation, artistTabUrl } from "@/lib/navigation";
+import SpotifyEmbed, { parseSpotifyUrl } from "@/components/artist/SpotifyEmbed";
 
 interface ArtistProfileProps {
   preview?: boolean;
@@ -183,16 +184,22 @@ export default function ArtistProfile({ preview = false, embedded = false }: Art
         )}
 
         {(artist.spotifyUrl || artist.youtubeUrl) && (
-          <section className="mb-8 flex gap-4">
+          <section className="mb-8 space-y-4">
             {artist.spotifyUrl && (
-              <a href={artist.spotifyUrl} target="_blank" rel="noreferrer" className="artist-profile-link artist-profile-link--spotify">
-                Spotify ↗
-              </a>
+              parseSpotifyUrl(artist.spotifyUrl) ? (
+                <SpotifyEmbed url={artist.spotifyUrl} />
+              ) : (
+                <a href={artist.spotifyUrl} target="_blank" rel="noreferrer" className="artist-profile-link artist-profile-link--spotify inline-flex">
+                  Spotify ↗
+                </a>
+              )
             )}
             {artist.youtubeUrl && (
-              <a href={artist.youtubeUrl} target="_blank" rel="noreferrer" className="artist-profile-link artist-profile-link--youtube">
-                YouTube ↗
-              </a>
+              <div>
+                <a href={artist.youtubeUrl} target="_blank" rel="noreferrer" className="artist-profile-link artist-profile-link--youtube inline-flex">
+                  YouTube ↗
+                </a>
+              </div>
             )}
           </section>
         )}
